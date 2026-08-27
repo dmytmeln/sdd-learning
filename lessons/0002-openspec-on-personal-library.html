@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 2 — OpenSpec on Personal-Library</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>Lesson 2 — Your First Spec with OpenSpec</h1>
+<p class="subtitle">Hands-on: install OpenSpec, initialize it on Personal-Library, and write a real delta spec for a Book Tags feature</p>
+
+<!-- ============================================================ -->
+<h2>What You'll Do (Not Just Read)</h2>
+
+<p>By the end of this lesson you will have:</p>
+<ol>
+  <li>Installed the OpenSpec CLI on your machine</li>
+  <li>Initialized OpenSpec inside <code>D:\Personal-Library</code></li>
+  <li>Written a real proposal for adding <strong>user-defined book tags</strong></li>
+  <li>Generated a delta spec describing the exact changes</li>
+  <li>Used the spec to guide an AI agent toward implementation</li>
+</ol>
+
+<div class="callout">
+  <strong>📚 Why "Book Tags"?</strong>
+  Your Personal-Library already has categories (admin-managed, global), but no <em>user-defined tags</em> — lightweight, personal labels like "vacation reads", "gift ideas", or "re-read".
+  It's a small, self-contained feature that touches existing entities (LibraryBook), needs a new package (<code>tag</code>), and has clear domain rules. Perfect for a first spec.
+</div>
+
+<!-- ============================================================ -->
+<h2>Step 1 — Install OpenSpec CLI</h2>
+
+<p>OpenSpec requires <strong>Node.js v20.19+</strong>. Open a terminal and run:</p>
+
+<pre><code>npm install -g @fission-ai/openspec@latest</code></pre>
+
+<p>Verify installation:</p>
+
+<pre><code>openspec --version</code></pre>
+
+<div class="callout tip">
+  <strong>💡 Don't have Node.js?</strong>
+  Download it from <a href="https://nodejs.org" target="_blank">nodejs.org</a>. The LTS version (v22+) works fine.
+</div>
+
+<!-- ============================================================ -->
+<h2>Step 2 — Initialize OpenSpec on Personal-Library</h2>
+
+<p>Navigate to your project and run:</p>
+
+<pre><code>cd D:\Personal-Library
+openspec init</code></pre>
+
+<p>The CLI will ask you to select your AI coding tool (Cursor, Claude Code, Copilot, etc.). Pick whichever you use — the spec files are the same regardless.</p>
+
+<p>After initialization, you'll see a new directory structure:</p>
+
+<pre><code>Personal-Library/
+└── openspec/
+    ├── specs/          ← Living specs (system state documentation)
+    └── changes/        ← Scoped directories for each new feature/change</code></pre>
+
+<div class="callout warn">
+  <strong>⚠ Checkpoint — stop and verify</strong>
+  Before continuing, confirm that the <code>openspec/</code> directory was created in your project root.
+  If it wasn't, check that Node.js is v20.19+ and retry.
+</div>
+
+<!-- ============================================================ -->
+<h2>Step 3 — Create a Change Proposal</h2>
+
+<p>Now you'll propose a new feature. In your AI assistant's chat window (not the terminal), type:</p>
+
+<pre><code>/opsx:propose book-tags</code></pre>
+
+<p>This creates a scoped directory under <code>openspec/changes/book-tags/</code> containing:</p>
+
+<table>
+  <thead>
+    <tr><th>File</th><th>Purpose</th><th>Who writes it</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>proposal.md</code></td>
+      <td>Business intent — <em>what</em> and <em>why</em></td>
+      <td>AI drafts, you review</td>
+    </tr>
+    <tr>
+      <td><code>design.md</code></td>
+      <td>Technical architecture — <em>how</em></td>
+      <td>AI drafts, you review</td>
+    </tr>
+    <tr>
+      <td><code>tasks.md</code></td>
+      <td>Ordered implementation checklist</td>
+      <td>AI generates from design</td>
+    </tr>
+    <tr>
+      <td><code>specs/&lt;capability&gt;/spec.md</code></td>
+      <td>Delta spec — exact ADDED/MODIFIED/REMOVED requirements</td>
+      <td>AI generates, you approve</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>🔑 This is the SDD moment</strong>
+  In vibe coding, you'd just say "add tags to books" and let the AI go. Here, the AI produces <em>reviewable artifacts</em> first. You approve the spec <em>before</em> any code is written. That's the fundamental shift.
+</div>
+
+<!-- ============================================================ -->
+<h2>Step 4 — Review and Refine the Proposal</h2>
+
+<p>Open <code>openspec/changes/book-tags/proposal.md</code>. The AI will have drafted something. Your job is to <strong>challenge it</strong> against these domain rules specific to your project:</p>
+
+<h3>Domain Rules You Should Enforce in the Spec</h3>
+<ol>
+  <li><strong>Tags are user-scoped</strong> — each user has their own tags; no global tag catalog</li>
+  <li><strong>Tags apply to LibraryBooks</strong> — not to global Books (consistent with how ratings, notes, and collections work in your app)</li>
+  <li><strong>Many-to-many</strong> — a LibraryBook can have multiple tags; a tag can be on multiple LibraryBooks</li>
+  <li><strong>Tag name constraints</strong> — max 30 characters, case-insensitive uniqueness per user, trimmed whitespace</li>
+  <li><strong>Soft limit</strong> — a user can have at most 50 tags (prevents abuse)</li>
+  <li><strong>Package-by-feature</strong> — new <code>tag</code> package following the same structure as <code>note</code>, <code>quote</code>, etc.</li>
+</ol>
+
+<p>If the AI's proposal doesn't match these rules, <strong>tell it to revise</strong>. This is the human-in-the-loop review that makes SDD valuable.</p>
+
+<div class="callout tip">
+  <strong>💡 How to give feedback</strong>
+  Don't just say "looks good." Be specific: <em>"The proposal should clarify that tags are user-scoped, not global. Also, add a 50-tag limit per user."</em> The more precise your feedback, the better the spec.
+</div>
+
+<!-- ============================================================ -->
+<h2>Step 5 — Examine the Delta Spec</h2>
+
+<p>After the proposal and design are approved, look at the delta spec. It should contain sections like:</p>
+
+<pre><code>## ADDED Requirements
+
+### Tag Entity
+- Tag entity with fields: id (Integer), name (String, max 30 chars), user (User)
+- Unique constraint on (name, user_id) with case-insensitive comparison
+- Liquibase migration: create `tags` table, `library_book_tags` join table
+
+### Tag REST API
+- POST   /api/v1/users/me/tags          — create a tag
+- GET    /api/v1/users/me/tags          — list user's tags
+- PUT    /api/v1/users/me/tags/{id}     — rename a tag
+- DELETE /api/v1/users/me/tags/{id}     — delete tag (removes from all books)
+
+### LibraryBook-Tag Association
+- PUT    /api/v1/users/me/library-books/{id}/tags  — set tags on a book
+- GET filter: LibraryBookSearchCriteria gains `tagIds` field
+
+## MODIFIED Requirements
+
+### LibraryBookDto
+- Add `tags` field (List&lt;TagDto&gt;) to LibraryBookDto response
+
+### LibraryBookSearchCriteria
+- Add `tagIds` filter to existing search criteria
+
+## REMOVED Requirements
+
+(none)
+</code></pre>
+
+<p>Compare this against the domain rules from Step 4. Does it match? Is anything missing? Is anything contradicting your project's conventions?</p>
+
+<!-- ============================================================ -->
+<h2>Step 6 — Apply the Spec</h2>
+
+<p>Once you've approved the delta spec, tell the AI to implement it:</p>
+
+<pre><code>/opsx:apply book-tags</code></pre>
+
+<p>The AI will now implement the <code>tasks.md</code> checklist, strictly following the spec. Watch what happens differently compared to vibe coding:</p>
+
+<table>
+  <thead>
+    <tr><th>Vibe Coding</th><th>OpenSpec SDD</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AI invents the API shape on the fly</td>
+      <td>API shape was decided in the spec and approved by you</td>
+    </tr>
+    <tr>
+      <td>AI might forget your package-by-feature convention</td>
+      <td>Spec explicitly says "new <code>tag</code> package"</td>
+    </tr>
+    <tr>
+      <td>AI might put tags on global Books</td>
+      <td>Spec says "tags apply to LibraryBooks only"</td>
+    </tr>
+    <tr>
+      <td>No record of why decisions were made</td>
+      <td>Proposal + design + delta spec = full audit trail</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>Step 7 — Archive</h2>
+
+<p>After verifying the implementation works:</p>
+
+<pre><code>/opsx:archive book-tags</code></pre>
+
+<p>This merges the delta spec into your living <code>openspec/specs/</code> documentation and files the change directory away. Your project's specs now reflect the new reality — tags exist.</p>
+
+<!-- ============================================================ -->
+<h2>Reflection — What You Just Did</h2>
+
+<p>You completed one full cycle of the SDD loop on a real project:</p>
+
+<pre><code>  PROPOSE → REVIEW → APPLY → ARCHIVE
+     ↑                           |
+     └───── next change ─────────┘
+</code></pre>
+
+<p>The key insight: <strong>the spec was the bottleneck, not the code.</strong> You spent most of your time reviewing and refining the proposal. The implementation was fast because the AI had a clear, bounded contract to work against.</p>
+
+<div class="callout">
+  <strong>🎯 Compare this to your vibe coding experience</strong>
+  <p>Think about the last time you asked an AI to add a feature to one of your projects. How many times did it go off-track? How many times did you have to course-correct mid-implementation? The spec front-loads that alignment.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>Knowledge Check</h2>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-question">1. What does the <code>/opsx:propose</code> command produce?</p>
+  <ul class="quiz-options">
+    <li>Immediately generates source code</li>
+    <li>A proposal, design, tasks, and delta spec for review</li>
+    <li>A Liquibase migration script</li>
+    <li>An OpenAPI YAML specification</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! <code>/opsx:propose</code> creates reviewable artifacts — no code is generated until you approve and run <code>/opsx:apply</code>.</div>
+  <div class="quiz-feedback wrong">❌ Not quite. <code>/opsx:propose</code> generates <em>spec artifacts</em> (proposal, design, tasks, delta spec) — not code. Code comes later with <code>/opsx:apply</code>.</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">2. A delta spec for adding Book Tags would primarily contain which section?</p>
+  <ul class="quiz-options">
+    <li>REMOVED Requirements only</li>
+    <li>MODIFIED Requirements only</li>
+    <li>ADDED Requirements with some MODIFIED</li>
+    <li>A full system specification</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! A new feature is mostly ADDED requirements, with some MODIFIED (e.g., adding a <code>tags</code> field to LibraryBookDto).</div>
+  <div class="quiz-feedback wrong">❌ Since Book Tags is a new feature, the delta spec is mainly ADDED requirements (new entity, new endpoints) with small MODIFIED sections (adding tags to existing DTOs). It's never a full system spec — that's the whole point of deltas.</div>
+</div>
+
+<div class="quiz" data-answer="3">
+  <p class="quiz-question">3. What happens when you run <code>/opsx:archive</code>?</p>
+  <ul class="quiz-options">
+    <li>It deletes all OpenSpec files from the project</li>
+    <li>It reverts the code changes to pre-spec state</li>
+    <li>It runs the test suite and reports coverage</li>
+    <li>It merges the delta spec into living docs and files the change</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! Archive merges your delta changes into the global <code>openspec/specs/</code> living documentation, keeping your project specs in sync with reality.</div>
+  <div class="quiz-feedback wrong">❌ <code>/opsx:archive</code> merges the delta spec into the living documentation (<code>openspec/specs/</code>) and files the completed change. It's the "sync" step that keeps your specs up to date.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>What's Next</h2>
+
+<p>In <strong>Lesson 3</strong>, you'll do the same thing with <strong>Spec Kit</strong> on your <strong>Gym CRM Platform</strong> — a very different project (microservices, OpenAPI, JMS messaging). You'll see how the Constitution concept changes the dynamics when you have distributed services and contracts between them.</p>
+
+<div class="callout">
+  <strong>📖 Recommended reading</strong>
+  <p>Read the <a href="https://github.blog/2025-09-02-spec-driven-development-with-ai/" target="_blank">GitHub Blog post on SDD</a> that launched Spec Kit. It's the best single article on <em>why</em> SDD matters, straight from GitHub.</p>
+</div>
+
+<div class="callout tip">
+  <strong>🤖 Stuck? I'm here.</strong>
+  If <code>openspec init</code> fails, if the proposal doesn't look right, or if you want to change the feature — just ask me. I'm your teacher, not a textbook.
+</div>
+
+<p><em>References: <a href="../reference/glossary.html">SDD Glossary</a> · <a href="0001-the-sdd-landscape.html">Lesson 1: The SDD Landscape</a></em></p>
+
+<div class="lesson-nav">
+  <a href="0001-the-sdd-landscape.html">← Lesson 1: The SDD Landscape</a>
+  <a href="0003-speckit-on-gym-crm.html">Next: Spec Kit on Gym CRM →</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+/* ===== SDD Learning — Shared Stylesheet ===== */
+/* Consistent look across all lessons and reference docs */
+
+:root {
+  --text:       #1a1a2e;
+  --bg:         #fafaf8;
+  --accent:     #2563eb;
+  --accent-light: #dbeafe;
+  --border:     #e2e8f0;
+  --muted:      #64748b;
+  --success:    #16a34a;
+  --error:      #dc2626;
+  --warning:    #d97706;
+  --code-bg:    #f1f5f9;
+  --font-sans:  'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --max-width:  44rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+  max-width: var(--max-width);
+  margin: 2rem auto;
+  padding: 0 1.5rem 4rem;
+}
+
+/* ---- Typography ---- */
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 700; }
+h1 { font-size: 1.8rem; margin: 0 0 0.25rem; }
+h2 { font-size: 1.35rem; margin: 2.5rem 0 0.75rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.3rem; }
+h3 { font-size: 1.1rem;  margin: 1.8rem 0 0.5rem; }
+
+p  { margin: 0.75rem 0; }
+a  { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+/* ---- Lists ---- */
+ul, ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+li { margin: 0.25rem 0; }
+
+/* ---- Code ---- */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+pre {
+  background: var(--code-bg);
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+pre code { background: none; padding: 0; }
+
+/* ---- Tables ---- */
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; }
+th, td { padding: 0.55rem 0.75rem; text-align: left; border: 1px solid var(--border); }
+th { background: var(--accent-light); font-weight: 600; }
+tr:nth-child(even) { background: #f8fafc; }
+
+/* ---- Callout boxes ---- */
+.callout {
+  border-left: 4px solid var(--accent);
+  background: var(--accent-light);
+  padding: 0.9rem 1.1rem;
+  border-radius: 0 6px 6px 0;
+  margin: 1.2rem 0;
+  font-size: 0.95rem;
+}
+.callout.tip    { border-color: var(--success); background: #dcfce7; }
+.callout.warn   { border-color: var(--warning); background: #fef3c7; }
+.callout.danger { border-color: var(--error);   background: #fee2e2; }
+.callout strong { display: block; margin-bottom: 0.2rem; }
+
+/* ---- Quiz widget hooks ---- */
+.quiz { margin: 2rem 0; }
+.quiz-question { font-weight: 600; margin-bottom: 0.75rem; }
+.quiz-options { list-style: none; padding: 0; }
+.quiz-options li {
+  padding: 0.6rem 1rem;
+  margin: 0.35rem 0;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.quiz-options li:hover { border-color: var(--accent); background: var(--accent-light); }
+.quiz-options li.correct  { border-color: var(--success); background: #dcfce7; }
+.quiz-options li.wrong    { border-color: var(--error);   background: #fee2e2; }
+.quiz-options li.disabled { pointer-events: none; opacity: 0.7; }
+.quiz-feedback {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-size: 0.93rem;
+  display: none;
+}
+.quiz-feedback.show { display: block; }
+.quiz-feedback.correct { background: #dcfce7; color: #166534; }
+.quiz-feedback.wrong   { background: #fee2e2; color: #991b1b; }
+
+/* ---- Diagram / figure ---- */
+figure { margin: 1.5rem 0; text-align: center; }
+figure img { max-width: 100%; border-radius: 8px; }
+figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
+
+/* ---- Navigation (lesson footer) ---- */
+.lesson-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.lesson-nav a { font-weight: 600; }
+
+/* ---- Print ---- */
+@media print {
+  body { max-width: 100%; margin: 0; padding: 1cm; font-size: 11pt; }
+  .quiz-options li { break-inside: avoid; }
+  a { text-decoration: underline; }
+}

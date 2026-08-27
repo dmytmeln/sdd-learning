@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 1 — The SDD Landscape</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>Lesson 1 — The SDD Landscape</h1>
+<p class="subtitle">Why spec-driven development emerged, and the three methodologies you'll learn</p>
+
+<!-- ============================================================ -->
+<h2>The Problem: Vibe Coding Doesn't Scale</h2>
+
+<p>You open a chat window, type <em>"build me a REST API for user management"</em>, and the AI spits out code. It works — for the first 30 minutes. Then you ask for auth, and it rewrites half the controller. You ask for pagination, and it forgets the auth. By hour two, you're debugging AI-generated spaghetti you didn't write and don't fully understand.</p>
+
+<p>This is <strong>vibe coding</strong> — unstructured, conversational prompting. It's the default mode for most developers using AI assistants today. It works fine for throwaway scripts and small experiments. It falls apart for anything you intend to maintain.</p>
+
+<div class="callout warn">
+  <strong>⚠ The three failure modes of vibe coding</strong>
+  <ol>
+    <li><strong>Context drift</strong> — the AI forgets earlier decisions and contradicts itself</li>
+    <li><strong>Hallucination under ambiguity</strong> — without a spec, the AI invents requirements</li>
+    <li><strong>Invisible architecture debt</strong> — no record of <em>why</em> decisions were made</li>
+  </ol>
+</div>
+
+<p>Spec-driven development is the emerging antidote. Instead of chatting your way to code, you <strong>write a specification first</strong>, then hand it to the AI as a contract. The spec becomes the source of truth — not the chat history.</p>
+
+<!-- ============================================================ -->
+<h2>What Is Spec-Driven Development?</h2>
+
+<p>At its core, SDD follows a simple loop:</p>
+
+<pre><code>  ┌───────────────┐
+  │  1. SPECIFY   │  ← Human writes/reviews a structured spec
+  └──────┬────────┘
+         ▼
+  ┌───────────────┐
+  │  2. PLAN      │  ← AI (or human) breaks spec into tasks
+  └──────┬────────┘
+         ▼
+  ┌───────────────┐
+  │  3. IMPLEMENT │  ← AI executes tasks against the spec
+  └──────┬────────┘
+         ▼
+  ┌───────────────┐
+  │  4. VERIFY    │  ← Check code against spec; update living docs
+  └──────┘────────┘
+         │
+         └──→ Loop back to step 1 for next change
+</code></pre>
+
+<p>Every SDD methodology implements this loop differently. The differences lie in <em>how much ceremony</em>, <em>who does what</em>, and <em>how specs evolve</em>.</p>
+
+<!-- ============================================================ -->
+<h2>The Spectrum: Three Levels of Rigor</h2>
+
+<p>Industry thinkers like Martin Fowler classify SDD approaches on a spectrum
+(<a href="https://martinfowler.com" target="_blank">martinfowler.com</a>):</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Level</th>
+      <th>What Happens to the Spec</th>
+      <th>Examples</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Spec-First</strong></td>
+      <td>Written upfront, may be discarded after implementation</td>
+      <td>Claude plan mode, Cursor Composer</td>
+    </tr>
+    <tr>
+      <td><strong>Spec-Anchored</strong></td>
+      <td>Living docs — spec stays in sync with code over time</td>
+      <td>OpenSpec, Spec Kit, AWS Kiro</td>
+    </tr>
+    <tr>
+      <td><strong>Spec-as-Source</strong></td>
+      <td>Spec <em>is</em> the source code; actual code is generated &amp; disposable</td>
+      <td>Tessl</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The three methodologies you asked about — OpenSpec, Spec Kit, and BMAD — all sit in the <strong>Spec-Anchored</strong> tier. They keep specifications alive as the project evolves.</p>
+
+<!-- ============================================================ -->
+<h2>Meet the Three Methodologies</h2>
+
+<h3>🔹 OpenSpec <small>(by Fission AI)</small></h3>
+<p><strong>Philosophy:</strong> Lightweight, change-centric. Designed especially for <em>brownfield</em> projects — existing codebases where writing full specs from scratch would be impractical.</p>
+<p><strong>Key idea:</strong> <em>Delta specs</em> — instead of documenting the whole system, you document only what's being ADDED, MODIFIED, or REMOVED for each change.</p>
+<p><strong>Workflow:</strong> <code>/opsx:propose</code> → <code>/opsx:apply</code> → <code>/opsx:sync</code></p>
+<p><strong>Best for:</strong> Solo developers or small teams iterating fast on existing codebases.</p>
+<p>📖 <a href="https://github.com/Fission-AI/OpenSpec" target="_blank">GitHub: Fission-AI/OpenSpec</a> · <a href="https://openspec.dev" target="_blank">openspec.dev</a></p>
+
+<h3>🔹 Spec Kit <small>(by GitHub)</small></h3>
+<p><strong>Philosophy:</strong> Standardized, phase-based. Works across 30+ AI coding assistants. Think of it as "the GitHub Actions of SDD" — opinionated templates, extensible community.</p>
+<p><strong>Key idea:</strong> The <em>Constitution</em> — immutable project rules that the AI must always obey (architecture patterns, coding standards, security policies).</p>
+<p><strong>Workflow:</strong> <code>/speckit.constitution</code> → <code>/speckit.specify</code> → <code>/speckit.plan</code> → <code>/speckit.tasks</code> → <code>/speckit.implement</code></p>
+<p><strong>Best for:</strong> Teams wanting a standardized, agent-agnostic process with community extensions.</p>
+<p>📖 <a href="https://github.com/github/spec-kit" target="_blank">GitHub: github/spec-kit</a> · <a href="https://github.blog/2025-09-02-spec-driven-development-with-ai/" target="_blank">GitHub Blog</a></p>
+
+<h3>🔹 BMAD <small>(Breakthrough Method for Agile AI-Driven Development)</small></h3>
+<p><strong>Philosophy:</strong> Multi-agent team simulation. Heavyweight but comprehensive. Simulates an entire cross-functional team: PM, Architect, Developer, QA.</p>
+<p><strong>Key idea:</strong> <em>Agent Personas</em> — each phase is handled by a specialized AI agent with a distinct role, responsibilities, and handoff criteria.</p>
+<p><strong>Workflow:</strong> PM drafts PRD → Architect creates spine + ADRs → Developer builds → QA verifies</p>
+<p><strong>Best for:</strong> Complex greenfield projects, enterprise systems, teams needing formal Agile ceremony.</p>
+<p>📖 <a href="https://github.com/bmad-code-org/BMAD-METHOD" target="_blank">GitHub: bmad-code-org/BMAD-METHOD</a> · <a href="https://bmad-method.org" target="_blank">bmad-method.org</a></p>
+
+<!-- ============================================================ -->
+<h2>Quick Comparison</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>OpenSpec</th>
+      <th>Spec Kit</th>
+      <th>BMAD</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Overhead</strong></td>
+      <td>Low</td>
+      <td>Medium</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td><strong>Spec strategy</strong></td>
+      <td>Delta specs</td>
+      <td>Constitution + plan</td>
+      <td>PRD + ADRs + personas</td>
+    </tr>
+    <tr>
+      <td><strong>Greenfield fit</strong></td>
+      <td>OK</td>
+      <td>Good</td>
+      <td>Excellent</td>
+    </tr>
+    <tr>
+      <td><strong>Brownfield fit</strong></td>
+      <td>Excellent</td>
+      <td>Good</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td><strong>Team size</strong></td>
+      <td>Solo / small</td>
+      <td>Any</td>
+      <td>Medium / large</td>
+    </tr>
+    <tr>
+      <td><strong>Agent-agnostic?</strong></td>
+      <td>Yes</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>Knowledge Check</h2>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">1. What is the primary artifact in spec-driven development?</p>
+  <ul class="quiz-options">
+    <li>The AI chat history</li>
+    <li>The pull request description</li>
+    <li>The specification document</li>
+    <li>The test suite output</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! The spec is the single source of truth — everything else flows from it.</div>
+  <div class="quiz-feedback wrong">❌ Not quite. In SDD, the <em>specification document</em> is the primary artifact. Chat histories are ephemeral; specs are persistent.</div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-question">2. Which methodology introduced the concept of "delta specs"?</p>
+  <ul class="quiz-options">
+    <li>Spec Kit (GitHub)</li>
+    <li>OpenSpec (Fission AI)</li>
+    <li>BMAD (bmad-code-org)</li>
+    <li>AWS Kiro (Amazon)</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! OpenSpec uses delta specs to document only ADDED, MODIFIED, or REMOVED requirements per change.</div>
+  <div class="quiz-feedback wrong">❌ That's not right. <em>Delta specs</em> are an OpenSpec concept — they let you document changes incrementally instead of rewriting full system specs.</div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-question">3. Which SDD methodology simulates a cross-functional team with agent personas?</p>
+  <ul class="quiz-options">
+    <li>BMAD (bmad-code-org)</li>
+    <li>Spec Kit (GitHub)</li>
+    <li>OpenSpec (Fission AI)</li>
+    <li>Tessl (Guy Podjarny)</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! BMAD defines specialized personas — PM, Architect, Developer, QA — each with distinct responsibilities.</div>
+  <div class="quiz-feedback wrong">❌ Not quite. <em>Agent personas</em> are a BMAD concept. BMAD simulates a full engineering team using role-specific AI agents.</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">4. What problem does a "Constitution" solve in Spec Kit?</p>
+  <ul class="quiz-options">
+    <li>It generates test cases automatically</li>
+    <li>It creates delta specs for brownfield apps</li>
+    <li>It enforces immutable project rules the AI must follow</li>
+    <li>It assigns work to specialized agent personas</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! The Constitution defines non-negotiable rules — architecture patterns, coding standards, security policies — that the AI cannot override.</div>
+  <div class="quiz-feedback wrong">❌ The Constitution is Spec Kit's mechanism for enforcing <em>immutable project rules</em> — things the AI must always follow regardless of the task.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>What's Next</h2>
+
+<p>Now that you have the lay of the land, the next lesson will dive deep into <strong>OpenSpec</strong> — the lightest-weight methodology and the best starting point for a solo backend developer. You'll install it, initialize a project, and write your first delta spec for a Spring Boot API endpoint.</p>
+
+<div class="callout">
+  <strong>📚 Recommended reading before next lesson</strong>
+  <p>Read the <a href="https://github.com/Fission-AI/OpenSpec" target="_blank">OpenSpec README</a> on GitHub. It's short (5-minute read) and gives you the practical context for what we'll do hands-on next.</p>
+</div>
+
+<div class="callout tip">
+  <strong>🤖 I'm your teacher — ask me anything</strong>
+  <p>If any concept here is unclear, or you want to explore something in more depth, just ask. That's what I'm here for. You can also tell me to adjust the pace or focus.</p>
+</div>
+
+<p><em>References: <a href="../reference/glossary.html">SDD Glossary</a></em></p>
+
+<div class="lesson-nav">
+  <span></span>
+  <a href="0002-openspec-first-delta-spec.html">Next: OpenSpec Hands-On →</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
