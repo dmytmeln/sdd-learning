@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 6 — Spec Evolution, Review Playbook &amp; Spec-to-Test Transformation</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { margin: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .checklist li::before { content: "☐"; position: absolute; left: 0; font-weight: bold; color: var(--accent); }
+    .code-tag { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
+    .tag-unit { background: #e0f2fe; color: #0369a1; }
+    .tag-slice { background: #fef3c7; color: #92400e; }
+    .tag-it { background: #dcfce7; color: #166534; }
+  </style>
+</head>
+<body>
+
+<h1>Lesson 6 — Spec Evolution, Review Playbook &amp; Spec-to-Test Transformation</h1>
+<p class="subtitle">How to mutate specs, conduct rigorous human reviews of AI-authored artifacts, audit generated code, and transform BDD specs directly into automated test suites</p>
+
+<!-- ============================================================ -->
+<h2>1. How to Change a Specification (Spec Mutation Lifecycle)</h2>
+
+<p>A frequent question in SDD is: <em>"What happens when requirements change?"</em> In OpenSpec, how you change a spec depends entirely on <strong>where the change sits in the lifecycle</strong>:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>State of the Project</th>
+      <th>Correct Mutation Procedure</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>A. In-Flight Discovery</strong><br><small>(During <code>/opsx:apply</code>)</small></td>
+      <td>Change workspace is active in <code>openspec/changes/&lt;id&gt;/</code></td>
+      <td>
+        <strong>The "Pause &amp; Amend" Rule:</strong><br>
+        1. Halt agent code generation.<br>
+        2. Directly edit <code>specs/&lt;cap&gt;/spec.md</code> (adjust GIVEN/WHEN/THEN) and <code>design.md</code>.<br>
+        3. Insert new tasks in <code>tasks.md</code>.<br>
+        4. Re-run <code>openspec validate &lt;id&gt;</code>.<br>
+        5. Resume <code>/opsx:apply</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>B. Post-Archive Evolution</strong><br><small>(Feature already deployed)</small></td>
+      <td>Previous change was archived; living spec exists in <code>openspec/specs/</code></td>
+      <td>
+        <strong>The New Delta Rule:</strong><br>
+        1. Never edit archived folders in <code>openspec/archive/</code>.<br>
+        2. Propose a new change: <code>/opsx:propose update-tag-limits</code>.<br>
+        3. In the new delta spec, write under <code>## MODIFIED Requirements</code>.<br>
+        4. When archived, it automatically updates the living spec.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>C. Living Spec Refactoring</strong><br><small>(Structural cleanup)</small></td>
+      <td>Reorganizing capabilities in <code>openspec/specs/</code> without behavior changes</td>
+      <td>
+        Directly rename or split files within <code>openspec/specs/</code> and validate with <code>openspec validate --all</code>.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>2. Recommended Human Review Flow (The 4-Stage Gate)</h2>
+
+<p>The entire point of Spec-Driven Development is that <strong>human review shifts left</strong> — from reviewing thousands of lines of raw code diffs to reviewing structured intent. Here is the recommended 4-stage review protocol:</p>
+
+<pre><code>  [Stage 1: Proposal Review] ──► [Stage 2: Design Review] ──► [Stage 3: Delta Spec Review] ──► [Stage 4: Tasks Review]
+       Scope &amp; Non-Goals             Architecture &amp; Seams           BDD &amp; Invariants               Phasing &amp; Test Gating
+</code></pre>
+
+<h3>Stage 1: Reviewing <code>proposal.md</code> (Product &amp; Boundaries)</h3>
+<ul class="checklist">
+  <li><strong>Is the Problem Statement clear?</strong> Does it solve a real user pain point?</li>
+  <li><strong>Are Non-Goals explicitly stated?</strong> Did the AI add speculative features (e.g. nested tags when you only wanted flat tags)? Cut them immediately.</li>
+  <li><strong>Are User Roles &amp; Multi-Tenancy defined?</strong> Is it clear whether this is user-private or global?</li>
+</ul>
+
+<h3>Stage 2: Reviewing <code>design.md</code> (Architecture &amp; Seams)</h3>
+<ul class="checklist">
+  <li><strong>Package-by-Feature Adherence:</strong> Does it match the existing project conventions (e.g. <code>org.example.library.tag.*</code>)?</li>
+  <li><strong>Database Migration Integrity:</strong> Are Liquibase/Flyway changesets fully typed, with foreign keys, unique constraints, and indexes?</li>
+  <li><strong>Error Handling:</strong> Are HTTP error statuses (400, 404, 409) and error codes (<code>error.tag.already_exists</code>) explicitly cataloged?</li>
+  <li><strong>Security Seam:</strong> How does authentication work? Is <code>userId</code> extracted securely from <code>UserPrincipal</code>?</li>
+</ul>
+
+<h3>Stage 3: Reviewing <code>specs/&lt;cap&gt;/spec.md</code> (Behavior &amp; Contracts)</h3>
+<ul class="checklist">
+  <li><strong>Deterministic GIVEN / WHEN / THEN:</strong> Can an automated test be written directly from every scenario?</li>
+  <li><strong>Edge Cases Covered:</strong> What happens on null inputs, boundary values (0 tags, 50 tags, 51 tags), and special characters?</li>
+  <li><strong>Requirement IDs:</strong> Does every rule have a unique key (e.g., <code>REQ-TAG-001</code>)?</li>
+</ul>
+
+<h3>Stage 4: Reviewing <code>tasks.md</code> (Sequencing &amp; Test Checkpoints)</h3>
+<ul class="checklist">
+  <li><strong>Dependency Order:</strong> Does it follow: Database → Entity/Repo → Service/Logic → Controller → Tests?</li>
+  <li><strong>Granularity:</strong> Is each task small enough to be verified independently?</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>3. Code Review Playbook: Auditing AI-Generated Code Against Specs</h2>
+
+<p>When the AI completes <code>/opsx:apply</code>, how do you review the code without getting overwhelmed? You perform a <strong>Spec-Conformance Code Review</strong>:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Review Check</th>
+      <th>What to Look For</th>
+      <th>Red Flags (Reject Code If Found)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>1. Spec-to-Code Conformance</strong></td>
+      <td>Compare the modified files directly against <code>tasks.md</code> and <code>design.md</code>.</td>
+      <td>AI created extra helper classes or utility methods not specified in <code>design.md</code> (speculative generality).</td>
+    </tr>
+    <tr>
+      <td><strong>2. Constraint Enforcement Seam</strong></td>
+      <td>Verify where business rules (e.g. 50-tag limit) are checked.</td>
+      <td>Rule is checked in the controller instead of the domain service layer, or not checked at all.</td>
+    </tr>
+    <tr>
+      <td><strong>3. Database Query Efficiency</strong></td>
+      <td>Examine Spring Data JPA repository methods and generated SQL.</td>
+      <td>N+1 query problems; fetching full entity collections in memory instead of using database counts or projections.</td>
+    </tr>
+    <tr>
+      <td><strong>4. Test Assertion Quality</strong></td>
+      <td>Inspect test assertions for each requirement ID.</td>
+      <td>Trivial tests that only assert <code>assertNotNull(response)</code> without verifying the exact GIVEN/WHEN/THEN contract values.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>4. Spec-to-Test Transformation (The Testing Pyramid in SDD)</h2>
+
+<div class="callout tip">
+  <strong>💡 Is it good practice to convert <code>spec.md</code> into tests?</strong>
+  <p><strong>Yes — it is the single most valuable practice in Spec-Driven Development.</strong></p>
+  <p>When every requirement in <code>spec.md</code> maps directly to an automated test, you achieve <strong>100% Behavioral Traceability</strong>. If a future refactor breaks a requirement, the exact requirement ID will fail in CI.</p>
+</div>
+
+<h3>The SDD Test Type Matrix: What Level of Test for What Requirement?</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test Type</th>
+      <th>What it Tests from <code>spec.md</code></th>
+      <th>Spring Boot Tooling</th>
+      <th>Speed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="code-tag tag-unit">Unit Test</span></td>
+      <td>Pure domain logic, input normalization (trim/lowercase), limit checks, custom validators.</td>
+      <td>JUnit Jupiter, Mockito, AssertJ</td>
+      <td>⚡ &lt; 5 ms</td>
+    </tr>
+    <tr>
+      <td><span class="code-tag tag-slice">Slice Test (Web)</span></td>
+      <td>HTTP endpoints, status codes (201, 400, 404), JSON serialization, authentication principal extraction.</td>
+      <td><code>@WebMvcTest</code>, <code>MockMvc</code></td>
+      <td>🚀 ~100 ms</td>
+    </tr>
+    <tr>
+      <td><span class="code-tag tag-it">Integration Test</span></td>
+      <td>Database constraints (unique index, cascading delete), Liquibase schema validity, complex queries.</td>
+      <td><code>@SpringBootTest</code>, Testcontainers (PostgreSQL)</td>
+      <td>🐢 ~1-3 s</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>5. Real-World Example: Converting REQ-TAG-001 into Tests</h2>
+
+<p>Let's take a requirement from our delta spec and show its exact transformation into tests across the pyramid:</p>
+
+<h3>The Delta Spec Requirement:</h3>
+<pre><code>### REQ-TAG-001: User Tag Creation
+An authenticated user MUST be able to create a custom tag scoped uniquely to their account.
+- **GIVEN** an authenticated user with ID 42
+- **WHEN** a POST request is sent to `/api/v1/users/me/tags` with payload `{"name": "science-fiction"}`
+- **THEN** a new Tag entity is persisted with `user_id = 42` and `name = "science-fiction"`
+- **AND** a `201 Created` status is returned with body `TagDto(id=1, name="science-fiction")`
+</code></pre>
+
+<h3>Transformation 1: Web Slice Test (<span class="code-tag tag-slice">MockMvc</span>)</h3>
+<pre><code>@WebMvcTest(TagController.class)
+class TagControllerTest {
+
+    @Autowired private MockMvc mockMvc;
+    @MockBean private TagService tagService;
+
+    @Test
+    @DisplayName("REQ-TAG-001: Should create tag and return 201 Created")
+    void shouldCreateTag_whenValidPayload() throws Exception {
+        // GIVEN
+        var request = new CreateTagRequest("science-fiction");
+        var expectedDto = new TagDto(1L, "science-fiction");
+        when(tagService.createTag(eq(42L), any())).thenReturn(expectedDto);
+
+        // WHEN &amp; THEN
+        mockMvc.perform(post("/api/v1/users/me/tags")
+                .with(user(new UserPrincipal(42L, "user@example.com", List.of())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"name": "science-fiction"}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("science-fiction"));
+    }
+}
+</code></pre>
+
+<h3>Transformation 2: Persistence Integration Test (<span class="code-tag tag-it">Testcontainers PostgreSQL</span>)</h3>
+<pre><code>@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers
+class TagRepositoryIT {
+
+    @Container
+    static PostgreSQLContainer&lt;?&gt; postgres = new PostgreSQLContainer&lt;&gt;("postgres:16-alpine");
+
+    @Autowired private TagRepository tagRepository;
+    @Autowired private UserRepository userRepository;
+
+    @Test
+    @DisplayName("REQ-TAG-001: Should persist Tag entity with correct user foreign key")
+    void shouldPersistTag_withUserRelationship() {
+        // GIVEN
+        var user = userRepository.save(User.builder().email("test@lib.com").build());
+        var tag = Tag.builder().name("science-fiction").user(user).build();
+
+        // WHEN
+        var saved = tagRepository.save(tag);
+
+        // THEN
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getName()).isEqualTo("science-fiction");
+        assertThat(saved.getUser().getId()).isEqualTo(user.getId());
+    }
+}
+</code></pre>
+
+<!-- ============================================================ -->
+<h2>6. 🎯 Obligatory Hands-On Practice Assignment</h2>
+
+<div class="practice-box">
+  <h3>🛠️ Assignment 6.1: Transforming Spec Scenarios into Spring Boot Tests</h3>
+  <p><strong>Goal:</strong> Implement 100% test traceability by translating <code>REQ-TAG-001</code> and <code>REQ-TAG-002</code> from <code>specs/tag/spec.md</code> into real MockMvc and Testcontainers tests in <code>Personal-Library</code>.</p>
+
+  <div class="practice-step">
+    <strong>Step 1: Create Web Slice Test for REQ-TAG-001</strong>
+    <p>In <code>library-app/src/test/java/org/example/library/tag/controller/TagControllerTest.java</code>, implement a <code>@WebMvcTest</code> verifying:</p>
+    <ul>
+      <li>201 Created on valid tag submission.</li>
+      <li>Authenticated <code>UserPrincipal</code> extraction.</li>
+    </ul>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 2: Create Integration Test for REQ-TAG-002 (Duplicate Prevention)</strong>
+    <p>In <code>library-app/src/test/java/org/example/library/tag/repository/TagRepositoryIT.java</code>, write a Testcontainers test verifying that inserting duplicate lowercase/uppercase names for the same <code>user_id</code> triggers a <code>DataIntegrityViolationException</code>.</p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 3: Run the Spec-Mapped Tests</strong>
+    <p>Execute the tests in terminal:</p>
+    <pre><code>./mvnw test -pl library-app -Dtest=TagControllerTest,TagRepositoryIT</code></pre>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 4: Conduct Spec Conformance Code Review</strong>
+    <p>Audit the implementation against the 4 review checklist rules in Section 3 of this lesson. Confirm no speculative code exists.</p>
+  </div>
+
+  <div class="callout tip">
+    <strong>✅ Verification Criteria &amp; Deliverable:</strong>
+    <ul>
+      <li>Both test classes pass cleanly (Green).</li>
+      <li>Every test method has a <code>@DisplayName</code> explicitly referencing <code>REQ-TAG-001</code> or <code>REQ-TAG-002</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. Knowledge Check</h2>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-question">1. If you discover an edge case while <code>/opsx:apply</code> is generating code, what is the best practice?</p>
+  <ul class="quiz-options">
+    <li>Let the AI finish, delete all tests, and push to main</li>
+    <li>Pause code generation, update the spec &amp; design first, then resume apply</li>
+    <li>Directly fix the code in IDE and leave the spec untouched</li>
+    <li>Run <code>openspec archive</code> immediately to bypass validation</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! Always pause and update the spec first. The specification must remain the single source of truth at all times.</div>
+  <div class="quiz-feedback wrong">❌ In SDD, you must pause and amend the specification and design first before modifying code. Otherwise, your specs suffer from immediate drift.</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">2. Which type of automated test is best suited for verifying database unique constraints and Liquibase schema validity?</p>
+  <ul class="quiz-options">
+    <li>Pure Unit Test with Mockito</li>
+    <li>Frontend Playwright E2E UI Test</li>
+    <li>Repository Integration Test with Testcontainers (real database)</li>
+    <li>Static SonarQube Lint Check</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! Database constraints (unique indexes, FK cascade) must be verified against a real database using Testcontainers.</div>
+  <div class="quiz-feedback wrong">❌ Database constraints and schema migrations require a real database (e.g. Testcontainers PostgreSQL) to verify that database-level indexes and constraints fire correctly.</div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-question">3. Why should requirement IDs (e.g. <code>REQ-TAG-001</code>) be referenced in automated test method names or <code>@DisplayName</code>?</p>
+  <ul class="quiz-options">
+    <li>To achieve 100% bidirectional traceability between specification requirements and test assertions</li>
+    <li>To make Java compile bytecode 50% faster</li>
+    <li>To allow the AI to bypass unit test execution in CI</li>
+    <li>To automatically delete Git branches on PR merge</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! Referencing requirement IDs in tests creates full traceability: when a test fails, you immediately know which exact spec clause was violated.</div>
+  <div class="quiz-feedback wrong">❌ Requirement IDs provide direct traceability between the specification document and the automated test suite.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Summary &amp; References</h2>
+
+<p>You have mastered spec evolution, human review gates, spec-to-code auditing, and the spec-to-test transformation pipeline.</p>
+
+<div class="lesson-nav">
+  <a href="0005-execution-validation-and-workflows.html">← Lesson 5: Execution &amp; Workflows</a>
+  <a href="../reference/openspec-reference.html">OpenSpec Reference Manual ↗</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

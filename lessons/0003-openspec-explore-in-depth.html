@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 3 — Mastering /opsx:explore (Exploratory Spec Engineering)</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .prompt-box {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      margin: 1rem 0;
+      border-left: 4px solid #89b4fa;
+    }
+    .prompt-box .command { color: #f9e2af; font-weight: bold; }
+    .prompt-box .user-text { color: #a6adc8; }
+  </style>
+</head>
+<body>
+
+<h1>Lesson 3 — Mastering /opsx:explore</h1>
+<p class="subtitle">How to probe codebases, unearth hidden architectural invariants, and evaluate trade-offs before writing a single line of spec or code</p>
+
+<!-- ============================================================ -->
+<h2>1. Why the Explore Phase Exists</h2>
+
+<p>In traditional development and naive AI prompting, developers commit the <strong>Premature Solutioning Anti-Pattern</strong>:</p>
+
+<pre><code>  [ The Premature Solutioning Trap ]
+  Idea ───► Immediately write code / draft spec ───► Hit hidden DB constraint in step 4
+                                                ───► Rewrite half the implementation
+</code></pre>
+
+<p>When you jump straight into <code>/opsx:propose</code> with a fuzzy idea, the AI generates proposals based on superficial assumptions. In a rich codebase like <code>Personal-Library</code>, it might miss that:</p>
+<ul>
+  <li>Books have a 2-tier scoping model: Global Catalog vs. User Library Book.</li>
+  <li>Collections have a hard limit of 4 hierarchy levels.</li>
+  <li>All endpoints under <code>/api/v1/users/me/**</code> must extract <code>userId</code> from <code>UserPrincipal</code>, never from URL query parameters.</li>
+</ul>
+
+<div class="callout tip">
+  <strong>💡 The Principle of /opsx:explore</strong>
+  <code>/opsx:explore</code> is your <strong>Thinking Partner</strong>. It operates under a strict contract: <em>investigate, challenge, uncover risks, and compare trade-offs without writing a single file to disk or modifying state</em>.
+</div>
+
+<!-- ============================================================ -->
+<h2>2. The Anatomy of an Effective Explore Session</h2>
+
+<p>An exploratory query is not just a casual chat. A high-leverage <code>/opsx:explore</code> prompt follows a 4-part structure:</p>
+
+<div class="prompt-box">
+  <span class="command">/opsx:explore</span><br><br>
+  <span class="user-text">
+  I want to add <strong>User-Defined Book Tags</strong> to our personal library.<br><br>
+  <strong>1. Context Investigation:</strong> Examine how <code>LibraryBook</code>, <code>Note</code>, and <code>Category</code> are structured in <code>org.example.library.*</code>.<br>
+  <strong>2. Invariant Discovery:</strong> What existing security, multi-tenancy, and database patterns must tags adhere to?<br>
+  <strong>3. Architectural Trade-offs:</strong> Compare: (A) A dedicated <code>Tag</code> entity with a join table vs. (B) a PostgreSQL array/JSONB column vs. (C) reusing the <code>Category</code> entity.<br>
+  <strong>4. Edge Cases:</strong> What happens on duplicate tag creation, tag deletion with associated books, or cascading user deletions?<br>
+  </span>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. What the AI's Exploration Report Looks Like</h2>
+
+<p>When given that structured query against <code>Personal-Library</code>, the AI produces a structured breakdown:</p>
+
+<h3>Section 1: Codebase Findings</h3>
+<ul>
+  <li><code>Category</code> is global/admin-managed (defined in <code>category/domain/Category.java</code>), whereas tags must be strictly user-owned.</li>
+  <li><code>LibraryBook</code> already has ownership bound to <code>user_id</code>. Tags must link to <code>LibraryBook</code>, not the global <code>Book</code> catalog entity.</li>
+  <li>Existing migrations use <strong>Liquibase</strong> (located at <code>library-app/src/main/resources/db/changelog/</code>). Any new table requires an XML changelog entry.</li>
+</ul>
+
+<h3>Section 2: Trade-Off Matrix</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Option</th>
+      <th>Pros</th>
+      <th>Cons</th>
+      <th>Verdict</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Option A: Dedicated <code>Tag</code> Entity + Join Table</strong></td>
+      <td>Relational integrity, easy indexing, user-scoped uniqueness, standard JPA query support via Specifications.</td>
+      <td>Requires new entity, repository, and join table migration.</td>
+      <td><strong style="color: var(--success);">Recommended</strong> — Matches project architecture.</td>
+    </tr>
+    <tr>
+      <td><strong>Option B: PostgreSQL Array / JSONB</strong></td>
+      <td>No join table needed.</td>
+      <td>Breaks H2 slice testing compatibility; harder to enforce case-insensitive uniqueness per user across all books.</td>
+      <td>Rejected.</td>
+    </tr>
+    <tr>
+      <td><strong>Option C: Reusing <code>Category</code></strong></td>
+      <td>Zero new tables.</td>
+      <td>Pollutes global admin taxonomy with private user tags; violates domain boundary.</td>
+      <td>Rejected.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Section 3: Invariants &amp; Non-Goals Discovered</h3>
+<ul>
+  <li><strong>Invariant</strong>: Tag names must be normalized (trimmed, case-insensitive uniqueness per user).</li>
+  <li><strong>Invariant</strong>: Maximum 50 tags per user to prevent unbounded joins and memory DOS.</li>
+  <li><strong>Non-Goal</strong>: Hierarchical tags (e.g. <code>tech/java/spring</code>) are out of scope for v1. Tags are flat strings.</li>
+  <li><strong>Non-Goal</strong>: Public tag sharing between users is out of scope.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>4. The Transition: From Explore to Propose</h2>
+
+<p>Once you are satisfied with the exploratory findings, you synthesize them directly into the proposal command:</p>
+
+<pre><code>/opsx:propose book-tags --option=A --max-tags=50 --scope=user-flat</code></pre>
+
+<p>Notice the massive difference between this and naive prompting: because you explored first, <strong>the resulting proposal is already aligned with your architecture, security rules, and database conventions</strong>. Zero guesswork.</p>
+
+<!-- ============================================================ -->
+<h2>5. When to Use /opsx:explore vs. Going Straight to Propose</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Scenario</th>
+      <th>Recommended Action</th>
+      <th>Rationale</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Adding a brand new feature or domain concept</td>
+      <td><code>/opsx:explore</code> first</td>
+      <td>Uncovers architectural seams, security patterns, and DB trade-offs before committing.</td>
+    </tr>
+    <tr>
+      <td>Refactoring an existing cross-cutting service</td>
+      <td><code>/opsx:explore</code> first</td>
+      <td>Discovers all callers and hidden dependencies across package seams.</td>
+    </tr>
+    <tr>
+      <td>Adding a standard CRUD field to an existing DTO/entity</td>
+      <td>Go straight to <code>/opsx:propose</code></td>
+      <td>Low architectural ambiguity; trade-offs are already known.</td>
+    </tr>
+    <tr>
+      <td>Fixing a localized bug with a known stack trace</td>
+      <td>Go straight to <code>/opsx:propose</code> (or direct fix)</td>
+      <td>Exploration overhead not required for deterministic single-line fixes.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>6. 🎯 Obligatory Hands-On Practice Assignment</h2>
+
+<div class="practice-box">
+  <h3>🛠️ Assignment 3.1: Running an In-Depth /opsx:explore Session on Personal-Library</h3>
+  <p><strong>Goal:</strong> Execute an exploratory session to probe <code>Personal-Library</code>, discover hidden domain invariants, and formulate architectural decisions without generating disk files.</p>
+
+  <div class="practice-step">
+    <strong>Step 1: Open Your AI Chat Interface</strong>
+    <p>Target workspace: <code>D:\Personal-Library</code>.</p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 2: Submit the Structured Explore Query</strong>
+    <p>Copy and send this exact exploratory prompt in chat:</p>
+    <pre><code>/opsx:explore
+I want to design a User Book Tags capability for Personal-Library.
+1. Probe org.example.library.library_book.domain.LibraryBook and Note to see how user scoping and associations are structured.
+2. Check how Liquibase changesets are indexed in library-app/src/main/resources/db/changelog/.
+3. Evaluate the trade-offs between:
+   (A) A dedicated Tag entity with a many-to-many join table `library_book_tags`.
+   (B) A PostgreSQL JSONB array column on `library_books`.
+4. What happens on cascade delete if a user or library-book is removed?
+5. List 3 explicit Non-Goals for this feature.</code></pre>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 3: Audit the AI's Exploratory Findings</strong>
+    <p>Review the AI response. Verify that it correctly identifies:</p>
+    <ul>
+      <li><code>LibraryBook</code> is already scoped to <code>user_id</code>.</li>
+      <li>Option A is required to support Testcontainers PostgreSQL &amp; H2 tests with relational integrity.</li>
+      <li>Non-goals must exclude hierarchical tags and public tag sharing.</li>
+    </ul>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 4: Verify Zero Disk Mutations</strong>
+    <p>Check <code>git status</code> in your terminal. Confirm that <code>/opsx:explore</code> produced <strong>zero modified or uncommitted files</strong> on disk.</p>
+  </div>
+
+  <div class="callout tip">
+    <strong>✅ Verification Criteria &amp; Deliverable:</strong>
+    <ul>
+      <li>You have received a structured trade-off analysis in chat without generating files on disk.</li>
+      <li>You have documented your architectural decisions (Option A + 3 Non-Goals) ready for <code>/opsx:propose</code>.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. Knowledge Check</h2>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">1. What is the primary output of an <code>/opsx:explore</code> command?</p>
+  <ul class="quiz-options">
+    <li>A committed Git branch with test cases</li>
+    <li>A set of markdown files in <code>openspec/changes/</code></li>
+    <li>An interactive chat analysis with trade-offs and zero disk changes</li>
+    <li>A compiled JAR file with updated dependencies</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! <code>/opsx:explore</code> is strictly an in-memory thinking-partner session. It outputs analysis in chat and writes zero files to disk.</div>
+  <div class="quiz-feedback wrong">❌ <code>/opsx:explore</code> creates no files on disk. Its output is an analytical report in chat designed to clarify requirements before creating artifacts.</div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-question">2. Why should "Non-Goals" be identified during the explore phase?</p>
+  <ul class="quiz-options">
+    <li>To explicitly bound the scope and prevent AI agent scope creep</li>
+    <li>To reduce the number of Git branches created</li>
+    <li>To automatically delete obsolete classes from the project</li>
+    <li>To disable Java compiler warnings during builds</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! Declaring Non-Goals prevents the AI from generating unwanted abstractions (like hierarchical tagging when you only asked for flat tags).</div>
+  <div class="quiz-feedback wrong">❌ Non-Goals explicitly define what is *out of scope*, preventing the AI from adding speculative complexity and unneeded abstractions.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Summary &amp; Next Step</h2>
+
+<p>You now know how to conduct high-precision exploratory sessions that eliminate architectural surprises.</p>
+
+<div class="lesson-nav">
+  <a href="0002-openspec-foundations-and-commands.html">← Lesson 2: Foundations &amp; Commands</a>
+  <a href="0004-authoring-bulletproof-delta-specs.html">Next: Lesson 4 — Authoring Bulletproof Delta Specs →</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

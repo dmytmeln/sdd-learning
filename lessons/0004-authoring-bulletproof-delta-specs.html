@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 4 — Authoring Bulletproof Delta Specs &amp; Artifacts</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>Lesson 4 — Authoring Bulletproof Delta Specs &amp; Artifacts</h1>
+<p class="subtitle">Mastering the four core OpenSpec artifacts: proposal.md, design.md, tasks.md, and formal Delta Spec grammar with BDD scenarios</p>
+
+<!-- ============================================================ -->
+<h2>1. The Four Artifacts of a Change Workspace</h2>
+
+<p>When you run <code>/opsx:propose &lt;id&gt;</code>, OpenSpec initializes four distinct files inside <code>openspec/changes/&lt;id&gt;/</code>. Each file answers one fundamental engineering question:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>File</th>
+      <th>Question Answered</th>
+      <th>Primary Audience</th>
+      <th>Key Focus</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>proposal.md</code></td>
+      <td><strong>Why &amp; What?</strong></td>
+      <td>Product / Team / Reviewers</td>
+      <td>User value, problem statement, strict scope boundaries, non-goals.</td>
+    </tr>
+    <tr>
+      <td><code>design.md</code></td>
+      <td><strong>How?</strong></td>
+      <td>Architect / Senior Dev / Agent</td>
+      <td>JPA entity diagrams, API contracts, Liquibase migration strategy, error codes.</td>
+    </tr>
+    <tr>
+      <td><code>tasks.md</code></td>
+      <td><strong>In What Order?</strong></td>
+      <td>AI Implementation Agent</td>
+      <td>Dependency-ordered, checkable task list with automated test verification steps.</td>
+    </tr>
+    <tr>
+      <td><code>specs/&lt;cap&gt;/spec.md</code></td>
+      <td><strong>What Exactly Changes?</strong></td>
+      <td>Living Spec Engine / Agent</td>
+      <td>Granular requirement deltas with BDD <code>GIVEN / WHEN / THEN</code> acceptance criteria.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>2. Deep-Dive: The Delta Spec Grammar</h2>
+
+<p>The delta specification (under <code>specs/&lt;capability&gt;/spec.md</code>) is the mathematical heart of OpenSpec. It must adhere to a strict 3-section grammar:</p>
+
+<h3>Section A: <code>## ADDED Requirements</code></h3>
+<p>Describes completely new capabilities. Each requirement must have a unique identifier (e.g. <code>REQ-TAG-001</code>) and formal BDD scenarios:</p>
+
+<pre><code>## ADDED Requirements
+
+### REQ-TAG-001: User Tag Creation
+An authenticated user MUST be able to create a custom tag scoped uniquely to their account.
+
+- **GIVEN** an authenticated user with ID 42
+- **WHEN** a POST request is sent to `/api/v1/users/me/tags` with payload `{"name": "science-fiction"}`
+- **THEN** a new Tag entity is persisted with `user_id = 42` and `name = "science-fiction"`
+- **AND** a `201 Created` status is returned with body `TagDto(id=1, name="science-fiction")`
+
+### REQ-TAG-002: Tag Name Normalization and Duplicate Prevention
+Tag names MUST be stored in trimmed lowercase, and duplicates for the same user MUST be rejected.
+
+- **GIVEN** user 42 already has a tag named `"history"`
+- **WHEN** user 42 posts a new tag with payload `{"name": "  HISTORY  "}`
+- **THEN** no database record is created
+- **AND** a `400 Bad Request` status is returned with code `"error.tag.already_exists"`
+</code></pre>
+
+<h3>Section B: <code>## MODIFIED Requirements</code></h3>
+<p>Describes changes to existing capabilities. It must specify the previous contract (<strong>WAS</strong>) and the updated contract (<strong>NOW</strong>):</p>
+
+<pre><code>## MODIFIED Requirements
+
+### REQ-LIBBOOK-003: LibraryBook Retrieval Response
+- **WAS**: `GET /api/v1/users/me/library-books/{id}` returned `LibraryBookDto` containing ID, status, rating, notes count, and location.
+- **NOW**: MUST include an additional field `tags: List&lt;TagDto&gt;` containing all active tags attached to this library book.
+</code></pre>
+
+<h3>Section C: <code>## REMOVED Requirements</code></h3>
+<p>Documents capabilities or fields being deprecated or deleted, accompanied by explicit architectural rationale:</p>
+
+<pre><code>## REMOVED Requirements
+
+### REQ-LEGACY-004: Ad-hoc Freeform Category Text Field
+- **REASON**: Superseded by structured User Tags and global Admin Categories.
+- **ACTION**: Drop `custom_category` column from `library_books` table via Liquibase migration.
+</code></pre>
+
+<!-- ============================================================ -->
+<h2>3. Structuring <code>design.md</code> for Spring Boot Monoliths</h2>
+
+<p>For a Spring Boot application like <code>Personal-Library</code>, a production-grade <code>design.md</code> should include five mandatory technical sections:</p>
+
+<ol>
+  <li><strong>Package Seam:</strong> Define the package path (e.g. <code>org.example.library.tag.*</code>) containing <code>controller</code>, <code>service</code>, <code>repository</code>, <code>domain</code>, <code>dto</code>, and <code>mapper</code>.</li>
+  <li><strong>Database &amp; Liquibase Changeset:</strong>
+    <pre><code>&lt;!-- db/changelog/changes/042-create-tags-table.xml --&gt;
+&lt;createTable tableName="tags"&gt;
+    &lt;column name="id" type="BIGSERIAL" autoIncrement="true"&gt;
+        &lt;constraints primaryKey="true" nullable="false"/&gt;
+    &lt;/column&gt;
+    &lt;column name="name" type="VARCHAR(30)"&gt;
+        &lt;constraints nullable="false"/&gt;
+    &lt;/column&gt;
+    &lt;column name="user_id" type="BIGINT"&gt;
+        &lt;constraints nullable="false" foreignKeyName="fk_tag_user" references="users(id)"/&gt;
+    &lt;/column&gt;
+&lt;/createTable&gt;
+&lt;addUniqueConstraint tableName="tags" columnNames="user_id, name" constraintName="uk_tag_user_name"/&gt;</code></pre>
+  </li>
+  <li><strong>Entity Relationships:</strong> <code>@ManyToMany</code> join table <code>library_book_tags</code> between <code>LibraryBook</code> and <code>Tag</code>.</li>
+  <li><strong>Error Catalog:</strong> Define exact error codes handled by <code>RestControllerExceptionHandler</code> (e.g., <code>error.tag.not_found</code>, <code>error.tag.limit_exceeded</code>).</li>
+  <li><strong>Performance &amp; Indexing:</strong> Composite index on <code>tags(user_id, name)</code> and index on <code>library_book_tags(library_book_id)</code>.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2>4. Structuring <code>tasks.md</code>: The Phased Execution Contract</h2>
+
+<p>Tasks must be broken into sequenced phases with explicit test-first checkpoints. This prevents the AI from attempting to write controllers before repositories exist:</p>
+
+<pre><code># Tasks: User Book Tags
+
+## Phase 1: Database &amp; Persistence
+- [ ] 1.1 Create Liquibase migration `042-create-tags-table.xml` and include in `db.changelog-master.xml`
+- [ ] 1.2 Implement `Tag` entity in `org.example.library.tag.domain.Tag`
+- [ ] 1.3 Implement `TagRepository` with `findByUserIdAndNameIgnoreCase` and `findAllByUserId`
+- [ ] 1.4 Add `TagRepositoryIT` integration test using Testcontainers PostgreSQL
+
+## Phase 2: DTOs, Mappers &amp; Service Layer
+- [ ] 2.1 Create `TagDto`, `CreateTagRequest`, and `UpdateTagRequest`
+- [ ] 2.2 Create `TagMapper` with MapStruct
+- [ ] 2.3 Implement `TagService` interface and `TagServiceImpl` with 50-tag limit enforcement
+- [ ] 2.4 Write unit tests in `TagServiceTest` covering business rules and duplicate detection
+
+## Phase 3: Web Controller &amp; API Integration
+- [ ] 3.1 Implement `TagController` under `@RequestMapping("/api/v1/users/me/tags")`
+- [ ] 3.2 Add tag association endpoints in `LibraryBookController`
+- [ ] 3.3 Write MockMvc tests in `TagControllerTest` verifying security and HTTP status codes
+
+## Phase 4: Verification &amp; Sync
+- [ ] 4.1 Run full Maven build: `./mvnw clean verify`
+- [ ] 4.2 Validate spec compliance with `openspec validate 20260830-book-tags`
+</code></pre>
+
+<!-- ============================================================ -->
+<h2>5. 🎯 Obligatory Hands-On Practice Assignment</h2>
+
+<div class="practice-box">
+  <h3>🛠️ Assignment 4.1: Generating &amp; Validating a Complete Delta Spec Workspace</h3>
+  <p><strong>Goal:</strong> Generate the formal OpenSpec change workspace for <code>book-tags</code> on <code>Personal-Library</code>, author the artifacts, and validate them with the CLI.</p>
+
+  <div class="practice-step">
+    <strong>Step 1: Execute the Proposal Command</strong>
+    <p>In your AI chat window for <code>D:\Personal-Library</code>, run:</p>
+    <pre><code>/opsx:propose 20260830-book-tags</code></pre>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 2: Inspect Generated Artifacts on Disk</strong>
+    <p>Verify that the following 4 files exist in <code>openspec/changes/20260830-book-tags/</code>:</p>
+    <ul>
+      <li><code>proposal.md</code></li>
+      <li><code>design.md</code></li>
+      <li><code>tasks.md</code></li>
+      <li><code>specs/tag/spec.md</code></li>
+    </ul>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 3: Edit and Refine the Delta Spec</strong>
+    <p>Open <code>specs/tag/spec.md</code> and verify it contains at least:</p>
+    <ul>
+      <li><code>REQ-TAG-001</code> (Tag creation with BDD GIVEN/WHEN/THEN)</li>
+      <li><code>REQ-TAG-002</code> (Case-insensitive unique constraint per user)</li>
+      <li><code>REQ-LB-003</code> (MODIFIED requirement adding <code>tags</code> to <code>LibraryBookDto</code>)</li>
+    </ul>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 4: Run CLI Schema Validation</strong>
+    <p>Open PowerShell and run:</p>
+    <pre><code>openspec validate 20260830-book-tags</code></pre>
+    <p>Fix any markdown header or link warnings reported by the validator until it passes cleanly.</p>
+  </div>
+
+  <div class="callout tip">
+    <strong>✅ Verification Criteria &amp; Deliverable:</strong>
+    <ul>
+      <li>All 4 files exist and adhere to the strict OpenSpec markdown schemas.</li>
+      <li><code>openspec validate 20260830-book-tags</code> returns <strong>Validation Successful (0 errors)</strong>.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Knowledge Check</h2>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">1. In an OpenSpec delta spec, what does the <code>## MODIFIED Requirements</code> section document?</p>
+  <ul class="quiz-options">
+    <li>Database passwords that need to be changed in production</li>
+    <li>Classes that were deleted during a Git merge conflict</li>
+    <li>Existing capabilities that are changing, with "WAS" and "NOW" descriptions</li>
+    <li>Comments left by team members during a PR code review</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! <code>## MODIFIED Requirements</code> explicitly documents behavioral changes to existing capabilities using WAS / NOW clauses.</div>
+  <div class="quiz-feedback wrong">❌ <code>## MODIFIED Requirements</code> captures modifications to existing behavior, explicitly comparing what was before (WAS) with what is expected now (NOW).</div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-question">2. Why should <code>tasks.md</code> be organized into phased, sequential milestones?</p>
+  <ul class="quiz-options">
+    <li>To allow the AI to guess random files to edit simultaneously</li>
+    <li>To enforce logical dependency order (DB → Domain → Service → Controller → Tests)</li>
+    <li>To bypass automated integration tests during compilation</li>
+    <li>To automatically format HTML documents in the browser</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! Phasing prevents the AI from generating controllers or DTOs before the underlying domain entities and repositories are in place.</div>
+  <div class="quiz-feedback wrong">❌ Phasing ensures tasks are executed in strict dependency order (persistence first, then service, then controller and tests).</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Summary &amp; Next Step</h2>
+
+<p>You have mastered the anatomy of OpenSpec artifacts and the delta specification grammar.</p>
+
+<div class="lesson-nav">
+  <a href="0003-openspec-explore-in-depth.html">← Lesson 3: Mastering /opsx:explore</a>
+  <a href="0005-execution-validation-and-workflows.html">Next: Lesson 5 — Execution, Validation &amp; Real-World Workflows →</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

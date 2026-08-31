@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 2 — OpenSpec Foundations, Architecture &amp; Command Suite</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-cli { background: #e0e7ff; color: #3730a3; }
+    .badge-slash { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+
+<h1>Lesson 2 — OpenSpec Foundations, Architecture &amp; Command Suite</h1>
+<p class="subtitle">A rigorous dive into the mental model, directory architecture, dual-interface mechanics, and token economics of OpenSpec</p>
+
+<!-- ============================================================ -->
+<h2>1. The Fundamental Problem: Context Drift &amp; The "Boil the Ocean" Trap</h2>
+
+<p>Before understanding OpenSpec, we must understand the two failure modes that plague software teams using AI coding assistants:</p>
+
+<div class="callout danger">
+  <strong>Failure Mode A: Vibe Coding (Zero Specification)</strong>
+  <p>In unstructured chat, the developer prompts iteratively. By step 12, the LLM loses attention on decisions made in step 2. It introduces subtle regressions, ignores earlier constraints, and invents conflicting database schemas because the prompt history exceeds optimal reasoning thresholds.</p>
+</div>
+
+<div class="callout warn">
+  <strong>Failure Mode B: Monolithic Spec-First ("Boil the Ocean")</strong>
+  <p>Traditional upfront specification methodologies demand documenting every existing controller, entity, and edge case before starting work. In a production brownfield app like <code>Personal-Library</code>, writing a 200-page specification upfront is economically impractical and doomed to rot.</p>
+</div>
+
+<p><strong>OpenSpec’s Solution:</strong> The <em>Delta Specification</em> paradigm. You maintain living documentation that grows incrementally. Every change introduces a tiny, isolated "delta" that documents only what is <code>ADDED</code>, <code>MODIFIED</code>, or <code>REMOVED</code>.</p>
+
+<!-- ============================================================ -->
+<h2>2. Directory Anatomy: How OpenSpec Organizes State</h2>
+
+<p>OpenSpec stores everything in pure, version-controlled Markdown directly in your repository root:</p>
+
+<pre><code>Personal-Library/
+├── openspec/
+│   ├── specs/                       ◄── LIVING SPECIFICATIONS (Permanent Source of Truth)
+│   │   ├── book-catalog/spec.md     ◄── Describes global books &amp; translations
+│   │   ├── collection-tree/spec.md  ◄── Describes 4-level hierarchy rules
+│   │   └── reading-progress/spec.md ◄── Describes status transitions &amp; goals
+│   │
+│   ├── changes/                     ◄── ACTIVE CHANGE WORKSPACES (In-Flight Work)
+│   │   └── 20260830-book-tags/      ◄── Scoped directory for a specific feature
+│   │       ├── proposal.md          ◄── "Why &amp; What" (Scope, non-goals, user value)
+│   │       ├── design.md            ◄── "How" (Architecture, schema, security, seams)
+│   │       ├── tasks.md             ◄── Ordered, checkable agent work breakdown
+│   │       └── specs/               ◄── Delta Specs for this change
+│   │           └── tag/spec.md      ◄── Exact ADDED/MODIFIED/REMOVED requirements
+│   │
+│   └── archive/                     ◄── AUDIT LOG (Completed &amp; synced changes)
+│       └── 20260820-rating-system/  ◄── Preserved historical context of past decisions
+└── library-app/                     ◄── Actual Spring Boot source code
+</code></pre>
+
+<!-- ============================================================ -->
+<h2>3. The Dual Interface: Terminal CLI vs. AI Slash Commands</h2>
+
+<p>One of the most frequent beginner mistakes is confusing where commands run. OpenSpec is strictly split across two execution environments:</p>
+
+<h3>Environment 1: Terminal Shell (<span class="badge badge-cli">CLI Commands</span>)</h3>
+<p>Used by <strong>you (the developer)</strong> in PowerShell/Bash to manage files, inspect repository health, validate schemas, and view dashboards:</p>
+
+<table>
+  <thead>
+    <tr><th>Command</th><th>When to run</th><th>What it does under the hood</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>openspec init</code></td>
+      <td>Once per project</td>
+      <td>Creates <code>openspec/</code> structure and injects slash command configuration for Cursor / Claude / Copilot.</td>
+    </tr>
+    <tr>
+      <td><code>openspec list</code></td>
+      <td>Daily workflow</td>
+      <td>Scans <code>openspec/changes/</code> and <code>openspec/specs/</code>, reporting active changes and completion percentages.</td>
+    </tr>
+    <tr>
+      <td><code>openspec show &lt;id&gt;</code></td>
+      <td>Before applying</td>
+      <td>Outputs status breakdown, completed vs. pending tasks, and spec delta counts for change <code>&lt;id&gt;</code>.</td>
+    </tr>
+    <tr>
+      <td><code>openspec validate &lt;id&gt;</code></td>
+      <td>During spec review</td>
+      <td>Lints markdown files for required sections, broken markdown links, and requirement identifier integrity.</td>
+    </tr>
+    <tr>
+      <td><code>openspec view</code></td>
+      <td>Planning / Reviews</td>
+      <td>Launches a lightweight local web UI to browse active changes, dependencies, and living specs graphically.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Environment 2: AI Chat Interface (<span class="badge badge-slash">Slash Commands</span>)</h3>
+<p>Used inside your <strong>AI coding assistant</strong> (Antigravity, Cursor, Claude Code, Copilot) to direct reasoning:</p>
+
+<table>
+  <thead>
+    <tr><th>Command</th><th>Phase</th><th>What the AI does</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/opsx:explore &lt;topic&gt;</code></td>
+      <td>Discovery</td>
+      <td><strong>Thinking Partner</strong>. Probes codebase, searches entities, reveals hidden constraints. <em>Writes zero files.</em></td>
+    </tr>
+    <tr>
+      <td><code>/opsx:propose &lt;id&gt;</code></td>
+      <td>Specification</td>
+      <td>Generates the change folder with <code>proposal.md</code>, <code>design.md</code>, <code>tasks.md</code>, and delta specs.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:apply &lt;id&gt;</code></td>
+      <td>Implementation</td>
+      <td>Executes <code>tasks.md</code> item by item, adhering strictly to the delta spec constraints.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:sync &lt;id&gt;</code></td>
+      <td>Documentation</td>
+      <td>Reconciles delta spec requirements into the main <code>openspec/specs/</code> living documentation.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:archive &lt;id&gt;</code></td>
+      <td>Completion</td>
+      <td>Verifies tasks are done, runs sync, and moves change folder to <code>openspec/archive/</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>4. 🎯 Obligatory Hands-On Practice Assignment</h2>
+
+<div class="practice-box">
+  <h3>🛠️ Assignment 2.1: Bootstrapping OpenSpec on Personal-Library</h3>
+  <p><strong>Goal:</strong> Transform <code>D:\Personal-Library</code> into an OpenSpec-governed repository and verify CLI runtime health.</p>
+
+  <div class="practice-step">
+    <strong>Step 1: Check Runtime Prerequisites</strong>
+    <p>Open PowerShell and verify that Node.js (v20.19.0+) is installed:</p>
+    <pre><code>node -v
+npm -v</code></pre>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 2: Install OpenSpec CLI Globally</strong>
+    <pre><code>npm install -g @fission-ai/openspec@latest</code></pre>
+    <p>Verify installation: <code>openspec --version</code></p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 3: Initialize OpenSpec in Personal-Library</strong>
+    <pre><code>cd D:\Personal-Library
+openspec init</code></pre>
+    <p>Select your primary AI assistant/editor when prompted (e.g. Cursor, Claude Code, Copilot, or Generic).</p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 4: Inspect Generated Scaffolding</strong>
+    <p>Verify that the following directory structure was created:</p>
+    <pre><code>D:\Personal-Library\openspec\
+├── specs/
+└── changes/</code></pre>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 5: Run Verification Command</strong>
+    <p>Execute the CLI listing command:</p>
+    <pre><code>openspec list</code></pre>
+  </div>
+
+  <div class="callout tip">
+    <strong>✅ Verification Criteria &amp; Deliverable:</strong>
+    <ul>
+      <li><code>openspec list</code> executes with exit code 0 and reports 0 active changes.</li>
+      <li>The <code>openspec/</code> directory is tracked in Git status.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Token Economics: Why SDD Makes Agents Smarter</h2>
+
+<p>Why does an AI generate cleaner Spring Boot code when governed by OpenSpec?</p>
+
+<pre><code>  [ Monolithic Vibe Prompting ]
+  Prompt: Entire Codebase + Chat History (120,000 tokens)
+  ─────────────────────────────────────────────────────────────
+  Attention Decay Curve:
+  100% ────┐
+   50%     └──────────┐
+    0%                └──────────────────────── (High Hallucination Zone)
+
+  [ OpenSpec Bounded Delta Prompting ]
+  Prompt: proposal.md + design.md + delta spec.md (12,000 tokens)
+  ─────────────────────────────────────────────────────────────
+  Attention Retention:
+  100% ──────────────────────────────────────── (Peak Reasoning &amp; Determinism)
+</code></pre>
+
+<p>By bounding the agent's context to a single change delta, we operate in the model's <strong>peak reasoning zone</strong>. The AI doesn't get confused by unrelated controllers or entities.</p>
+
+<!-- ============================================================ -->
+<h2>6. Knowledge Check</h2>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-question">1. Where are living, permanent system specifications stored in OpenSpec?</p>
+  <ul class="quiz-options">
+    <li><code>openspec/changes/&lt;id&gt;/</code></li>
+    <li><code>openspec/specs/</code></li>
+    <li><code>.github/workflows/</code></li>
+    <li><code>openspec/archive/</code></li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! <code>openspec/specs/</code> holds the permanent living specifications of the master codebase.</div>
+  <div class="quiz-feedback wrong">❌ Not quite. <code>openspec/specs/</code> is the permanent home for living specs. <code>changes/</code> is only for temporary in-flight workspaces.</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">2. Which command is strictly a terminal CLI command, NOT an AI slash command?</p>
+  <ul class="quiz-options">
+    <li><code>/opsx:explore</code></li>
+    <li><code>/opsx:apply</code></li>
+    <li><code>openspec validate</code></li>
+    <li><code>/opsx:propose</code></li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! <code>openspec validate</code> is a terminal CLI command run by the developer to verify markdown schema integrity.</div>
+  <div class="quiz-feedback wrong">❌ <code>openspec validate</code> is a CLI command run in the terminal. All commands starting with <code>/opsx:</code> are AI slash commands.</div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-question">3. What is the primary operational rule of the <code>/opsx:explore</code> command?</p>
+  <ul class="quiz-options">
+    <li>It only probes and analyzes; it creates zero files on disk</li>
+    <li>It immediately generates the Java entity and migration files</li>
+    <li>It merges all delta specs directly into master living specs</li>
+    <li>It deletes previous archived changes to save disk space</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! <code>/opsx:explore</code> is purely a thinking partner session for investigation — it writes zero files to disk.</div>
+  <div class="quiz-feedback wrong">❌ <code>/opsx:explore</code> is strictly an investigation step. It generates no files and writes no code until you transition to <code>/opsx:propose</code>.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Summary &amp; Next Step</h2>
+
+<p>You now understand the architecture, directory layout, command matrix, and token economics of OpenSpec.</p>
+
+<div class="callout tip">
+  <strong>📖 Deep Dive Reference</strong>
+  Always keep the <a href="../reference/openspec-reference.html" target="_blank">OpenSpec Comprehensive Reference Manual</a> bookmarked for full syntax and schema details.
+</div>
+
+<div class="lesson-nav">
+  <a href="0001-the-sdd-landscape.html">← Lesson 1: The SDD Landscape</a>
+  <a href="0003-openspec-explore-in-depth.html">Next: Lesson 3 — Deep Dive into /opsx:explore →</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

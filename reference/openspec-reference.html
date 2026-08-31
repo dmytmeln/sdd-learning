@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSpec Comprehensive Reference Manual</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-cli { background: #e0e7ff; color: #3730a3; }
+    .badge-slash { background: #fef3c7; color: #92400e; }
+    .badge-artifact { background: #dcfce7; color: #166534; }
+  </style>
+</head>
+<body>
+
+<h1>OpenSpec Reference Manual</h1>
+<p class="subtitle">Complete Technical Architecture, Command Matrix, Grammar &amp; Operational Patterns</p>
+
+<!-- ============================================================ -->
+<h2>1. Architecture &amp; Mental Model</h2>
+
+<p>OpenSpec is a <strong>change-centric, repo-native</strong> Spec-Driven Development framework. It replaces ephemeral AI chat context with durable, version-controlled Markdown artifacts stored directly inside the target repository.</p>
+
+<pre><code>project-root/
+└── openspec/
+    ├── specs/                       ← LIVING DOCUMENTATION (System Source of Truth)
+    │   ├── catalog/spec.md
+    │   ├── collection/spec.md
+    │   └── auth/spec.md
+    ├── changes/                     ← ACTIVE DELTA WORKSPACES (In-flight changes)
+    │   └── 20260830-add-tags/
+    │       ├── proposal.md          ← Intent, scope &amp; non-goals (Why &amp; What)
+    │       ├── design.md            ← Architecture, schemas, trade-offs (How)
+    │       ├── tasks.md             ← Ordered, checkable agent work breakdown
+    │       └── specs/               ← Delta Specs (Exact requirement diffs)
+    │           └── tag/spec.md      ← ADDED / MODIFIED / REMOVED requirements
+    └── archive/                     ← HISTORICAL RECORD (Archived changes after sync)
+        └── 20260825-book-ratings/
+            ├── proposal.md
+            └── ...
+</code></pre>
+
+<div class="callout tip">
+  <strong>💡 The Living Spec vs. Delta Split</strong>
+  <ul>
+    <li><strong>Living Specs (<code>openspec/specs/</code>)</strong>: Describe the <em>current capabilities</em> of the master codebase. They are permanent, modular, and capability-focused.</li>
+    <li><strong>Delta Specs (<code>openspec/changes/&lt;id&gt;/specs/</code>)</strong>: Describe only the <em>net changes</em> (ADDED, MODIFIED, REMOVED) for a specific work item. Once implemented, these deltas are folded into the living specs.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. The Unified Command Matrix</h2>
+
+<p>OpenSpec distinguishes strictly between <strong>CLI Commands</strong> (run in your shell for repository orchestration) and <strong>AI Slash Commands</strong> (typed into the AI agent's chat window for cognitive collaboration).</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Context</th>
+      <th>Type</th>
+      <th>Primary Purpose &amp; Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>openspec init</code></td>
+      <td>Terminal</td>
+      <td><span class="badge badge-cli">CLI</span></td>
+      <td>Bootstraps the <code>openspec/</code> folder structure and configures slash prompts for chosen IDE/Agent.</td>
+    </tr>
+    <tr>
+      <td><code>openspec list</code></td>
+      <td>Terminal</td>
+      <td><span class="badge badge-cli">CLI</span></td>
+      <td>Enumerates active change proposals, their status, and existing living specifications.</td>
+    </tr>
+    <tr>
+      <td><code>openspec show &lt;id&gt;</code></td>
+      <td>Terminal</td>
+      <td><span class="badge badge-cli">CLI</span></td>
+      <td>Displays formatted status, task completion count, and artifact summary for change <code>&lt;id&gt;</code>.</td>
+    </tr>
+    <tr>
+      <td><code>openspec validate &lt;id&gt;</code></td>
+      <td>Terminal</td>
+      <td><span class="badge badge-cli">CLI</span></td>
+      <td>Validates markdown schema compliance, missing requirement keys, and broken links across change artifacts.</td>
+    </tr>
+    <tr>
+      <td><code>openspec view</code></td>
+      <td>Terminal</td>
+      <td><span class="badge badge-cli">CLI</span></td>
+      <td>Launches a local interactive web dashboard visualizing changes, living specs, and progress.</td>
+    </tr>
+    <tr>
+      <td><code>openspec archive &lt;id&gt;</code></td>
+      <td>Terminal</td>
+      <td><span class="badge badge-cli">CLI</span></td>
+      <td>Directly moves an active change to <code>archive/</code> and triggers sync into <code>openspec/specs/</code>.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:explore</code></td>
+      <td>AI Chat</td>
+      <td><span class="badge badge-slash">Slash</span></td>
+      <td><strong>Thinking-Partner Mode</strong>: Deeply investigates existing code, discovers edge cases, and weighs trade-offs. Produces <em>no disk files</em>.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:propose &lt;id&gt;</code></td>
+      <td>AI Chat</td>
+      <td><span class="badge badge-slash">Slash</span></td>
+      <td>Generates the complete change workspace: <code>proposal.md</code>, <code>design.md</code>, <code>tasks.md</code>, and initial delta specs.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:apply &lt;id&gt;</code></td>
+      <td>AI Chat</td>
+      <td><span class="badge badge-slash">Slash</span></td>
+      <td>Instructs the AI agent to execute tasks sequentially against the delta spec, running tests after each task.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:sync &lt;id&gt;</code></td>
+      <td>AI Chat</td>
+      <td><span class="badge badge-slash">Slash</span></td>
+      <td>Reconciles delta specs into the global <code>openspec/specs/</code> living documentation tree.</td>
+    </tr>
+    <tr>
+      <td><code>/opsx:archive &lt;id&gt;</code></td>
+      <td>AI Chat</td>
+      <td><span class="badge badge-slash">Slash</span></td>
+      <td>Verifies tasks are 100% complete, executes spec sync, and files the change folder into <code>archive/</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>3. The State Machine &amp; Lifecycle</h2>
+
+<pre><code>                    ┌─────────────────────────┐
+                    │      Vague Idea         │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     /opsx:explore       │ ◄── Codebase probing &amp;
+                    └────────────┬────────────┘     trade-off analysis
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     /opsx:propose       │ ◄── Creates proposal, design,
+                    └────────────┬────────────┘     tasks, and delta specs
+                                 │
+             ┌───────────────────┴───────────────────┐
+             ▼                                       ▼
+    [Human Review / Edits]                  [openspec validate]
+             │                                       │
+             └───────────────────┬───────────────────┘
+                                 │ Approved
+                                 ▼
+                    ┌─────────────────────────┐
+                    │      /opsx:apply        │ ◄── Executes tasks against spec
+                    └────────────┬────────────┘     with automated test checks
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     /opsx:archive       │ ◄── Merges deltas to living specs
+                    └─────────────────────────┘     &amp; archives change folder
+</code></pre>
+
+<!-- ============================================================ -->
+<h2>4. Delta Specification Grammar</h2>
+
+<p>Every delta spec under <code>openspec/changes/&lt;id&gt;/specs/&lt;capability&gt;/spec.md</code> strictly categorizes behavioral changes using three primary top-level headers:</p>
+
+<pre><code># Capability: Tag Management
+
+## ADDED Requirements
+
+### REQ-TAG-001: User Tag Creation
+A user MUST be able to create a custom tag scoped uniquely to their account.
+- **GIVEN** an authenticated user with ID 42
+- **WHEN** a POST request is sent to `/api/v1/users/me/tags` with name `"sci-fi"`
+- **THEN** a new Tag entity is created with ID and name trimmed to lowercase
+- **AND** a 201 Created response is returned with the created `TagDto`
+
+### REQ-TAG-002: Tag Name Uniqueness
+Tag names MUST be unique per user (case-insensitive).
+- **GIVEN** user 42 already owns a tag named `"history"`
+- **WHEN** user 42 attempts to create a tag named `"HISTORY"` or `" history "`
+- **THEN** the operation MUST fail with 400 Bad Request (`error.tag.already_exists`)
+
+## MODIFIED Requirements
+
+### REQ-LB-004: LibraryBook Response Payload
+- **WAS**: Returned `LibraryBookDto` containing ID, status, rating, and location.
+- **NOW**: MUST include an additional field `tags: List&lt;TagDto&gt;` populated with all tags associated with the library book.
+
+## REMOVED Requirements
+
+### REQ-LEGACY-009: Deprecated Freeform Book Memo
+- **REASON**: Superseded by structured Notes and Tags system.
+- **ACTION**: Remove `memo` column from `library_books` table.
+</code></pre>
+
+<!-- ============================================================ -->
+<h2>5. Artifact Anatomy &amp; Schemas</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Artifact</th>
+      <th>Key Required Sections</th>
+      <th>Quality Criteria</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>proposal.md</code></td>
+      <td>
+        • <strong>Intent &amp; Context</strong><br>
+        • <strong>User Value &amp; Problem Statement</strong><br>
+        • <strong>Scope &amp; Non-Goals</strong> (Explicit boundaries)<br>
+        • <strong>Assumptions &amp; Dependencies</strong>
+      </td>
+      <td>No technical implementation code. Focus purely on <em>what</em> is changing and <em>why</em>. Non-goals prevent scope creep.</td>
+    </tr>
+    <tr>
+      <td><code>design.md</code></td>
+      <td>
+        • <strong>Architecture Strategy</strong> (Package, Seams)<br>
+        • <strong>Data Model &amp; Database Migrations</strong><br>
+        • <strong>API &amp; REST Contracts</strong><br>
+        • <strong>Error Handling &amp; Security Policy</strong><br>
+        • <strong>Trade-off Evaluation &amp; Alternatives</strong>
+      </td>
+      <td>Explicitly addresses edge cases, database constraints (unique indexes, FK cascading), and architectural rules.</td>
+    </tr>
+    <tr>
+      <td><code>tasks.md</code></td>
+      <td>
+        • <strong>Phase 1: Persistence &amp; Domain Model</strong><br>
+        • <strong>Phase 2: Service Layer &amp; Business Rules</strong><br>
+        • <strong>Phase 3: Web Controller &amp; DTO Mapping</strong><br>
+        • <strong>Phase 4: Integration &amp; Unit Tests</strong><br>
+        • <strong>Phase 5: Verification &amp; Cleanup</strong>
+      </td>
+      <td>Strictly ordered checkbox checklist (`- [ ]`). Each item must be verifiable with an automated test or assertion.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>6. Context Window Economics</h2>
+
+<p>Why OpenSpec avoids dumping entire codebases into prompts:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Approach</th>
+      <th>Token Footprint</th>
+      <th>Reasoning Quality</th>
+      <th>Risk Profile</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Monolithic Prompting</strong></td>
+      <td>100k – 200k tokens</td>
+      <td>Degrades rapidly; high attention decay</td>
+      <td>High context hallucination, silent overwrites</td>
+    </tr>
+    <tr>
+      <td><strong>OpenSpec Delta Scoping</strong></td>
+      <td><strong>10k – 30k tokens</strong></td>
+      <td><strong>Peak reasoning retention</strong></td>
+      <td><strong>Deterministic, test-gated execution</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>7. Trade-offs: Pros vs. Cons</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Advantages (Pros)</th>
+      <th>Trade-offs &amp; Overhead (Cons)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Zero Greenfield Monopoly</strong>: Designed natively for brownfield codebases via delta specifications.</td>
+      <td><strong>Upfront Ceremony</strong>: Requires 5–10 minutes of spec review before code generation begins.</td>
+    </tr>
+    <tr>
+      <td><strong>Bounded Agent Context</strong>: Keeps AI strictly within the declared capability boundary.</td>
+      <td><strong>Discipline Overhead</strong>: If a human modifies code out-of-band without updating specs, drift can occur.</td>
+    </tr>
+    <tr>
+      <td><strong>Living Documentation</strong>: Specs automatically stay fresh via <code>/opsx:archive</code> syncing.</td>
+      <td><strong>Tool Dependency</strong>: Requires Node.js runtime and slash command setup in developer environment.</td>
+    </tr>
+    <tr>
+      <td><strong>Deterministic Auditability</strong>: Git commits directly reference specific proposal IDs and tasks.</td>
+      <td><strong>Overkill for Trivial Fixes</strong>: Single-line typo or CSS fixes don't warrant a full proposal cycle.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>8. Spec Mutation &amp; Evolution Lifecycle</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Lifecycle Phase</th>
+      <th>Trigger Condition</th>
+      <th>Mandatory Procedure</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>In-Flight Discovery</strong><br>(During <code>/opsx:apply</code>)</td>
+      <td>Unforeseen edge case, missing field, or broken assumption found while generating code.</td>
+      <td>
+        <strong>Pause &amp; Amend Rule:</strong><br>
+        1. Halt code generation.<br>
+        2. Amend <code>specs/&lt;cap&gt;/spec.md</code> and <code>design.md</code> directly.<br>
+        3. Insert new tasks into <code>tasks.md</code>.<br>
+        4. Run <code>openspec validate &lt;id&gt;</code>.<br>
+        5. Resume <code>/opsx:apply</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Post-Archive Evolution</strong><br>(Next release/feature)</td>
+      <td>Business requirements evolve after previous change was completed and archived.</td>
+      <td>
+        <strong>New Delta Rule:</strong><br>
+        1. Run <code>/opsx:propose &lt;new-change-id&gt;</code>.<br>
+        2. Author requirements under <code>## MODIFIED Requirements</code>.<br>
+        3. Archiving folds changes into the master <code>openspec/specs/</code> living docs.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Living Spec Refactor</strong><br>(Structural cleanup)</td>
+      <td>Splitting or merging capability files in <code>openspec/specs/</code> without altering behavior.</td>
+      <td>
+        Reorganize files in <code>openspec/specs/</code> and verify integrity via <code>openspec validate --all</code>.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>9. The Human Review &amp; Code Review Playbook</h2>
+
+<h3>4-Stage Spec Review Checklist</h3>
+<ul>
+  <li><strong>1. Proposal Check:</strong> Scope is tight, user roles defined, non-goals explicitly state what will NOT be built.</li>
+  <li><strong>2. Design Check:</strong> Package-by-feature conventions respected, Liquibase changesets complete, error catalog enumerated.</li>
+  <li><strong>3. Delta Spec Check:</strong> Every rule is in BDD <code>GIVEN / WHEN / THEN</code> format with a unique ID (e.g. <code>REQ-TAG-001</code>).</li>
+  <li><strong>4. Tasks Check:</strong> Sequenced in strict dependency order (Persistence → Service → Controller → Tests).</li>
+</ul>
+
+<h3>AI-Generated Code Review Playbook</h3>
+<ul>
+  <li><strong>Conformance Audit:</strong> Check git diff against <code>tasks.md</code>. Reject any unapproved classes or speculative utilities.</li>
+  <li><strong>Seam Verification:</strong> Ensure business constraints are enforced in domain services, not leaky controllers.</li>
+  <li><strong>Query Performance:</strong> Verify JPA repository queries avoid N+1 fetches and use projections/counts where appropriate.</li>
+  <li><strong>Test Traceability:</strong> Verify every requirement ID has a matching automated test method.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>10. Spec-to-Test Transformation Strategy</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Spec Element</th>
+      <th>Target Test Level</th>
+      <th>Recommended Stack</th>
+      <th>Example Assertion</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Validation &amp; Business Rules</td>
+      <td>Unit Test</td>
+      <td>JUnit 5, AssertJ, Mockito</td>
+      <td><code>assertThatThrownBy(() -> service.create(42, duplicate)).isInstanceOf(DuplicateException.class);</code></td>
+    </tr>
+    <tr>
+      <td>HTTP Contracts, Statuses &amp; Auth</td>
+      <td>Slice Test</td>
+      <td><code>@WebMvcTest</code>, <code>MockMvc</code></td>
+      <td><code>mockMvc.perform(post("/api/v1/tags")).andExpect(status().isCreated());</code></td>
+    </tr>
+    <tr>
+      <td>Schema, Indexes &amp; DB Constraints</td>
+      <td>Integration Test</td>
+      <td><code>@DataJpaTest</code>, Testcontainers</td>
+      <td><code>assertThrows(DataIntegrityViolationException.class, () -> repo.save(tag2));</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="lesson-nav">
+  <a href="../lessons/0001-the-sdd-landscape.html">← Course Overview</a>
+  <a href="../lessons/0006-spec-review-evolution-and-testing.html">Lesson 6: Spec Review &amp; Testing →</a>
+</div>
+
+</body>
+</html>

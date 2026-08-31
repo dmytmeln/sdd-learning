@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 5 — Execution, Validation &amp; Real-World OpenSpec Workflows</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-cli { background: #e0e7ff; color: #3730a3; }
+    .badge-slash { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+
+<h1>Lesson 5 — Execution, Validation &amp; Real-World Workflows</h1>
+<p class="subtitle">Executing /opsx:apply, validating integrity via CLI, merging deltas into living documentation, and mastering multi-change workflows</p>
+
+<!-- ============================================================ -->
+<h2>1. The Execution Phase: <code>/opsx:apply</code></h2>
+
+<p>Once your change artifacts (<code>proposal.md</code>, <code>design.md</code>, <code>tasks.md</code>, and delta specs) are validated, you trigger execution in your AI chat:</p>
+
+<pre><code>/opsx:apply 20260830-book-tags</code></pre>
+
+<h3>How the Agent Operates Under <code>/opsx:apply</code>:</h3>
+<ol>
+  <li><strong>Reads the Contract:</strong> The agent loads <code>design.md</code>, the delta spec, and <code>tasks.md</code> into its active context window.</li>
+  <li><strong>Sequential Task Traversal:</strong> It works through tasks one by one, checking off completed items in <code>tasks.md</code> (<code>- [x] 1.1 Create Liquibase migration...</code>).</li>
+  <li><strong>Test Gating:</strong> After completing each phase, it executes the corresponding unit or integration test suite to verify no regressions occurred.</li>
+</ol>
+
+<div class="callout warn">
+  <strong>⚠ The Golden Rule: Mid-Flight Spec Amendments</strong>
+  <p>What if during <code>/opsx:apply</code>, you or the agent discover an unforeseen edge case (e.g. tag names need emoji filtering)?</p>
+  <p><strong>Never edit code to deviate from the spec!</strong> Instead:
+  <ol>
+    <li>Pause code generation.</li>
+    <li>Update the requirement in <code>specs/tag/spec.md</code> and <code>design.md</code>.</li>
+    <li>Add a new task in <code>tasks.md</code>.</li>
+    <li>Resume <code>/opsx:apply</code>.</li>
+  </ol>
+  <em>The spec remains the single source of truth at all times.</em></p>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Validation &amp; Integrity: <code>openspec validate</code></h2>
+
+<p>Before and after applying changes, you can verify repository integrity using the CLI in your terminal:</p>
+
+<pre><code># Validate a specific change workspace
+openspec validate 20260830-book-tags
+
+# Validate all active changes and living specs
+openspec validate --all</code></pre>
+
+<h3>What <code>openspec validate</code> Checks:</h3>
+<ul>
+  <li><strong>Schema Completeness:</strong> Verifies that <code>proposal.md</code>, <code>design.md</code>, and <code>tasks.md</code> contain all mandatory headers.</li>
+  <li><strong>Requirement Identifiers:</strong> Ensures all requirements in delta specs have valid, non-duplicate keys (e.g. <code>REQ-TAG-001</code>).</li>
+  <li><strong>Cross-References:</strong> Detects broken markdown links between tasks and spec files.</li>
+  <li><strong>Task Progress:</strong> Warns if tasks are unchecked prior to archiving.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>3. Living Documentation Sync &amp; Archiving</h2>
+
+<p>When all tasks in <code>tasks.md</code> are checked and tests pass, you finalize the change:</p>
+
+<pre><code>/opsx:archive 20260830-book-tags</code></pre>
+
+<p>This command performs two coordinated operations:</p>
+
+<h3>Operation A: Spec Reconcilation (Sync)</h3>
+<p>OpenSpec merges the delta spec into the permanent <code>openspec/specs/</code> folder:</p>
+<ul>
+  <li><code>## ADDED</code> items are appended as permanent capabilities in <code>openspec/specs/tag/spec.md</code>.</li>
+  <li><code>## MODIFIED</code> items update the target capability's living specification.</li>
+  <li><code>## REMOVED</code> items are removed from the living specification.</li>
+</ul>
+
+<h3>Operation B: Historical Archiving</h3>
+<p>The entire directory <code>openspec/changes/20260830-book-tags/</code> is moved to <code>openspec/archive/20260830-book-tags/</code>. This preserves a permanent, auditable Git history of the exact proposal, architectural design, and tasks that produced the feature.</p>
+
+<!-- ============================================================ -->
+<h2>4. Real-World Patterns &amp; Best Practices</h2>
+
+<h3>Pattern 1: Git Feature Branches + OpenSpec</h3>
+<p>Each Git branch encapsulates its own active change directory:</p>
+<pre><code>git checkout -b feature/book-tags
+# creates openspec/changes/20260830-book-tags/
+# code &amp; spec developed together
+git commit -m "feat(tag): implement user book tags according to spec"
+# /opsx:archive moves change to archive/
+git merge main</code></pre>
+
+<h3>Pattern 2: Brownfield Legacy Onboarding</h3>
+<p>How to introduce OpenSpec to an existing project like <code>Personal-Library</code> without documenting everything upfront:</p>
+<ol>
+  <li><strong>Day 1:</strong> Run <code>openspec init</code>. Leave <code>openspec/specs/</code> completely empty.</li>
+  <li><strong>First Feature:</strong> Propose a new feature (e.g. <code>20260830-book-tags</code>) with delta specs.</li>
+  <li><strong>On Archive:</strong> OpenSpec automatically seeds <code>openspec/specs/tag/spec.md</code> as your first living spec!</li>
+  <li><strong>Over Time:</strong> Every new feature or refactor naturally populates your living documentation without any artificial documentation sprints.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2>5. Comprehensive Pros &amp; Cons Matrix</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Dimension</th>
+      <th>OpenSpec (SDD)</th>
+      <th>Vibe Coding (No Spec)</th>
+      <th>Heavy Spec-First (e.g. Waterfall/Full BDD)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Context Integrity</strong></td>
+      <td><strong style="color: var(--success);">High</strong> (Delta-scoped)</td>
+      <td><strong style="color: var(--error);">Low</strong> (Severe context drift)</td>
+      <td><strong style="color: var(--success);">High</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Brownfield Fit</strong></td>
+      <td><strong style="color: var(--success);">Excellent</strong> (Incremental deltas)</td>
+      <td><strong style="color: var(--warning);">Medium</strong> (High risk of breaking legacy)</td>
+      <td><strong style="color: var(--error);">Poor</strong> (Too expensive to spec everything)</td>
+    </tr>
+    <tr>
+      <td><strong>Upfront Speed</strong></td>
+      <td><strong style="color: var(--accent);">Moderate</strong> (5–10 min spec review)</td>
+      <td><strong style="color: var(--success);">Instant</strong> (Immediate typing)</td>
+      <td><strong style="color: var(--error);">Very Slow</strong> (Days of spec writing)</td>
+    </tr>
+    <tr>
+      <td><strong>Maintenance &amp; Audit</strong></td>
+      <td><strong style="color: var(--success);">Automatic</strong> (Living docs + Archive)</td>
+      <td><strong style="color: var(--error);">Non-existent</strong></td>
+      <td><strong style="color: var(--warning);">Manual</strong> (Docs quickly rot)</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>6. 🎯 Obligatory Hands-On Practice Assignment</h2>
+
+<div class="practice-box">
+  <h3>🛠️ Assignment 5.1: Executing /opsx:apply, Amending In-Flight, and Archiving</h3>
+  <p><strong>Goal:</strong> Drive the AI agent through the implementation of <code>book-tags</code> on <code>Personal-Library</code>, practice the Pause &amp; Amend protocol, and merge deltas into living documentation.</p>
+
+  <div class="practice-step">
+    <strong>Step 1: Trigger Implementation</strong>
+    <p>In your AI chat window for <code>D:\Personal-Library</code>, run:</p>
+    <pre><code>/opsx:apply 20260830-book-tags</code></pre>
+    <p>Observe the AI executing Phase 1 (Liquibase migration &amp; JPA Entity) and checking off items in <code>tasks.md</code>.</p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 2: Practice an In-Flight Spec Amendment</strong>
+    <p>Simulate discovering an edge case: tag names must not exceed 25 characters instead of 30.</p>
+    <ol>
+      <li>Halt code generation.</li>
+      <li>In <code>specs/tag/spec.md</code> and <code>design.md</code>, change max length to 25.</li>
+      <li>In <code>tasks.md</code>, add task: <code>- [ ] Add @Size(max = 25) validation to TagDto</code>.</li>
+      <li>Resume: <code>/opsx:apply 20260830-book-tags</code>.</li>
+    </ol>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 3: Run the Test Suite</strong>
+    <p>Verify that the generated code compiles and tests pass:</p>
+    <pre><code>./mvnw test -pl library-app</code></pre>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 4: Execute Archive &amp; Living Doc Sync</strong>
+    <p>In AI chat, run:</p>
+    <pre><code>/opsx:archive 20260830-book-tags</code></pre>
+    <p>Verify that:</p>
+    <ul>
+      <li><code>openspec/changes/20260830-book-tags/</code> moved to <code>openspec/archive/</code>.</li>
+      <li><code>openspec/specs/tag/spec.md</code> now exists as a permanent living specification!</li>
+    </ul>
+  </div>
+
+  <div class="callout tip">
+    <strong>✅ Verification Criteria &amp; Deliverable:</strong>
+    <ul>
+      <li>Maven build passes cleanly with green tests.</li>
+      <li>Living documentation in <code>openspec/specs/tag/spec.md</code> is populated.</li>
+      <li><code>openspec list</code> reports 0 active changes and 1 living specification.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. Knowledge Check</h2>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-question">1. What should you do if an unforeseen design flaw is discovered during <code>/opsx:apply</code>?</p>
+  <ul class="quiz-options">
+    <li>Quietly change the Java code and leave the spec outdated</li>
+    <li>Pause, amend the delta spec and design.md first, then resume apply</li>
+    <li>Delete the entire repository and restart from scratch</li>
+    <li>Ignore the flaw and push to production</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! In SDD, you always update the specification first to maintain it as the single source of truth.</div>
+  <div class="quiz-feedback wrong">❌ Always update the specification and design first before modifying code. This preserves the spec as the single source of truth.</div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-question">2. How does OpenSpec solve the brownfield documentation problem?</p>
+  <ul class="quiz-options">
+    <li>It forces developers to document the entire codebase in week 1</li>
+    <li>It uses AI to delete undocumented legacy code automatically</li>
+    <li>It seeds living documentation incrementally as new feature deltas are archived</li>
+    <li>It generates binary files that only compilers can read</li>
+  </ul>
+  <div class="quiz-feedback correct">✅ Correct! OpenSpec builds living documentation incrementally over time through archived delta specs, avoiding upfront documentation fatigue.</div>
+  <div class="quiz-feedback wrong">❌ OpenSpec seeds living specs incrementally with every archived change, so you never have to "boil the ocean" on an existing codebase.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Course Summary &amp; Milestone Achievement</h2>
+
+<div class="callout tip">
+  <strong>🎓 You have completed the OpenSpec Deep-Dive Masterclass!</strong>
+  <p>You now possess a comprehensive, architectural, and operational mastery of OpenSpec: from directory state and command taxonomies, to exploratory probing, delta spec grammar, and living doc sync.</p>
+</div>
+
+<div class="lesson-nav">
+  <a href="0004-authoring-bulletproof-delta-specs.html">← Lesson 4: Authoring Delta Specs</a>
+  <a href="../reference/openspec-reference.html">OpenSpec Reference Manual ↗</a>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

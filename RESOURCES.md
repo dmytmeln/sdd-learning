@@ -18,11 +18,12 @@ Curated resources for learning Spec-Driven Development (SDD) for AI coding agent
 |---|---|---|---|---|
 | 1 | OpenSpec — Official Repository | GitHub Repo | 🟢 | https://github.com/Fission-AI/OpenSpec |
 | 2 | OpenSpec — Documentation | Official Docs | 🟢 | https://openspec.dev |
-| 3 | GitHub Spec Kit — Repository | GitHub Repo | 🟢 | https://github.com/github/spec-kit |
-| 4 | GitHub Blog: SDD with AI | Blog Post | 🟢 | https://github.blog/2025-09-02-spec-driven-development-with-ai/ |
-| 5 | BMAD-METHOD — Repository | GitHub Repo | 🟢 | https://github.com/bmad-code-org/BMAD-METHOD |
-| 6 | BMAD — Official Site | Official Docs | 🟢 | https://bmad-method.org |
-| 7 | BMad Method Masterclass (Video) | Video | 🟢 | https://youtu.be/LorEJPrALcg |
+| 3 | [OpenSpec Reference Manual (Local)](file:///D:/Робочий%20стіл/Learning/sdd/reference/openspec-reference.html) | Local Reference | 🟢 | `./reference/openspec-reference.html` |
+| 4 | GitHub Spec Kit — Repository | GitHub Repo | 🟢 | https://github.com/github/spec-kit |
+| 5 | GitHub Blog: SDD with AI | Blog Post | 🟢 | https://github.blog/2025-09-02-spec-driven-development-with-ai/ |
+| 6 | BMAD-METHOD — Repository | GitHub Repo | 🟢 | https://github.com/bmad-code-org/BMAD-METHOD |
+| 7 | BMAD — Official Site | Official Docs | 🟢 | https://bmad-method.org |
+| 8 | BMad Method Masterclass (Video) | Video | 🟢 | https://youtu.be/LorEJPrALcg |
 
 ## Adjacent Tools & Platforms
 

@@ -122,6 +122,31 @@ figure { margin: 1.5rem 0; text-align: center; }
 figure img { max-width: 100%; border-radius: 8px; }
 figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
 
+/* ---- Practice & Assignment box ---- */
+.practice-box {
+  border: 2px solid var(--accent);
+  background: #f0fdf4;
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.practice-box h3 {
+  color: #166534;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.practice-step {
+  margin: 1rem 0;
+  padding-left: 0.5rem;
+  border-left: 3px solid #86efac;
+}
+.practice-step strong {
+  color: #15803d;
+}
+
 /* ---- Navigation (lesson footer) ---- */
 .lesson-nav {
   display: flex;

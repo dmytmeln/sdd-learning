@@ -167,6 +167,36 @@
 </table>
 
 <!-- ============================================================ -->
+<h2>🎯 Obligatory Hands-On Practice Assignment</h2>
+
+<div class="practice-box">
+  <h3>🛠️ Assignment 1.1: Auditing Your Codebase for SDD Fit</h3>
+  <p><strong>Goal:</strong> Inspect <code>D:\Personal-Library</code> and <code>D:\gym-crm-platfrom</code> to identify architectural seams and determine which SDD rigor level fits each.</p>
+
+  <div class="practice-step">
+    <strong>Step 1: Inspect Monolith Package Seams in Personal-Library</strong>
+    <p>Open <code>D:\Personal-Library\library-app\src\main\java\org\example\library\</code>. Identify the 18 feature packages (e.g. <code>book</code>, <code>note</code>, <code>collection</code>) and confirm it uses <strong>package-by-feature</strong>.</p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 2: Inspect Microservice Contracts in Gym CRM</strong>
+    <p>Open <code>D:\gym-crm-platfrom\pom.xml</code> and <code>workload-contract/</code>. Confirm that inter-service communication is governed by shared DTO contracts and ActiveMQ JMS.</p>
+  </div>
+
+  <div class="practice-step">
+    <strong>Step 3: Document SDD Fit Evaluation</strong>
+    <p>Confirm why <strong>OpenSpec</strong> (Delta Specs) is ideal for <code>Personal-Library</code> (brownfield, modular monolith) while <strong>Spec Kit / BMAD</strong> is ideal for <code>gym-crm-platfrom</code> (distributed multi-service contracts).</p>
+  </div>
+
+  <div class="callout tip">
+    <strong>✅ Verification Criteria &amp; Deliverable:</strong>
+    <ul>
+      <li>You have verified both codebases locally and confirmed their architectural styles.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
 <h2>Knowledge Check</h2>
 
 <div class="quiz" data-answer="2">

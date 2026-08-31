@@ -3,19 +3,22 @@
 ## User Preferences
 
 - Primary stack: Java / Spring Boot (backend APIs)
-- Starting level: Complete beginner to SDD
-- Motivation: AI agent workflows — wants to learn OpenSpec, SpecKit, BMAD
-- **⚠️ CRITICAL: Wants PRACTICE-BASED learning, not theory. Every lesson must involve hands-on work.**
-- Two real projects available as practice grounds:
-  - `D:\Personal-Library` — personal library app (library-app + library-ui)
-  - `D:\gym-crm-platfrom` — gym CRM platform (microservices: api-gateway, gym-core-service, workload-service, discovery-server)
-- Lessons should use THEIR codebases, not hypothetical examples
-- Theory is only acceptable as brief context before doing real work
+- Starting level: Beginner to SDD, highly motivated to master OpenSpec deeply
+- Motivation: AI agent workflows — wants an in-depth, rigorous course on **OpenSpec** (not just a high-level tryout)
+- **⚠️ CRITICAL LEARNING GOALS FOR OPENSPEC**:
+  - Fundamentals & Architecture: Living specs vs Delta changes, repo-native Git governance, context window budgeting
+  - Deep Command Breakdown: Purpose, inputs, outputs, and mechanics of both Slash commands (`/opsx:explore`, `/opsx:propose`, `/opsx:apply`, `/opsx:sync`, `/opsx:archive`) and CLI commands (`openspec init`, `list`, `show`, `validate`, `view`, `archive`)
+  - Exploratory Phase: In-depth mechanics of `/opsx:explore` (codebase probing, invariant discovery, trade-off analysis without polluting context)
+  - Spec Engineering & Grammar: Delta spec semantics (`## ADDED`, `## MODIFIED`, `## REMOVED`, BDD Given/When/Then), `proposal.md`, `design.md`, `tasks.md` sequencing
+  - Workflows & Trade-offs: Pros, cons, brownfield tactics, drift management, multi-change coordination
+- Hands-on practice ground: `D:\Personal-Library`
 
 ## Working Notes
 
-- User is coming from a practical dev background, not academic
-- Focus on actionable workflows with their real projects
-- Lesson 1 (landscape overview) was theory-heavy — user explicitly asked for more practice
-- From Lesson 2 onward: every lesson = hands-on exercise on a real project
-- Ideal lesson structure: 20% context → 80% doing
+- User explicitly asked to slow down and go much deeper into OpenSpec rather than rushing through multiple frameworks
+- Build dedicated, high-density lessons and rich reference guides
+- Structure:
+  1. OpenSpec Foundations, Architecture & Command Matrix
+  2. Exploratory Spec Engineering with `/opsx:explore`
+  3. Authoring Bulletproof Delta Specs & Living Documentation
+  4. Execution, Validation, Drift Recovery & Real-world Workflows
